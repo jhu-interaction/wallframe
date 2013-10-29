@@ -52,6 +52,9 @@ namespace wallframe{
     This method creates the ROS interfaces such as the subscribers and publishers to the user message topics, as well as getting parameters for the app screen size, and reducing the displayed size by the height percentage of the infobar (if desired)
   */
   bool WallframeAppBase::initBaseApp(){
+    // Make sure no user focused in case user manager is not running.
+    this->focused_user_id_ = -1;
+
     // Initialize User Listeners
     user_state_subscriber_ = node_.subscribe("/wallframe/users/state", 1000, &WallframeAppBase::userStateCallback, this);
     user_event_subscriber_ = node_.subscribe("/wallframe/users/events", 1000, &WallframeAppBase::userEventCallback, this);
