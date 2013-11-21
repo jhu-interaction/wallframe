@@ -53,6 +53,22 @@
 
 namespace wallframe{
 
+  static const int JOINT_HEAD = 0;
+  static const int JOINT_NECK = 1;
+  static const int JOINT_TORSO = 2;
+  static const int JOINT_RIGHT_SHOULDER = 3;
+  static const int JOINT_LEFT_SHOULDER = 4;
+  static const int JOINT_RIGHT_ELBOW = 5;
+  static const int JOINT_LEFT_ELBOW = 6;
+  static const int JOINT_RIGHT_HAND = 7;
+  static const int JOINT_LEFT_HAND = 8;
+  static const int JOINT_RIGHT_HIP = 9;
+  static const int JOINT_LEFT_HIP = 10;
+  static const int JOINT_RIGHT_KNEE = 11;
+  static const int JOINT_LEFT_KNEE = 12;
+  static const int JOINT_RIGHT_FOOT = 13;
+  static const int JOINT_LEFT_FOOT = 14;
+
   class AppUser{
   public:
     AppUser(){};
