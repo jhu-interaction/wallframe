@@ -58,6 +58,8 @@ class User():
     self.transforms_merged_ = []
     self.translations_ = {}
     self.translations_merged = []
+    self.translations_merged_last = []
+    self.velocities = []
     self.confs_merged_ = []
     self.merged_transform_exists_ = []
     self.tracker_transform_exists_ = {}
@@ -140,6 +142,8 @@ class User():
       self.transforms_merged_ = [Transform()]*len(self.frame_names_)
       self.confs_merged_ = [0]*len(self.frame_names_)
       self.translations_merged_ = [Vector3(0.0,0.0,0.0)]*len(self.frame_names_)
+      self.translations_merged_last = [Vector3(0.0,0.0,0.0)]*len(self.frame_names_)
+      self.velocities = [0]*len(self.frame_names_)
       self.translations_merged_mm_ = [Vector3(0.0,0.0,0.0)]*len(self.frame_names_)
       self.translations_merged_body_mm_ = [Vector3(0.0,0.0,0.0)]*len(self.frame_names_)
       self.merged_transform_exists_ = [False]*len(self.frame_names_)
@@ -193,12 +197,16 @@ class User():
           timestamp[2] += 1.0/self.run_frequency_
           # TODO Fix filtering
           self.translations_merged_[index] = t
+          self.velocities[index] = (self.translations_merged_ - self.translations_merged_last)/2.0
+          self.translations_merged_last = self.translations_merged_
           self.translations_merged_mm_[index] = Vector3(t.x*1000,t.y*1000,t.z*1000)
           self.translations_merged_body_mm_[index] = Vector3( self.translations_merged_mm_[index].x - self.translations_merged_mm_[2].x, 
                                                               self.translations_merged_mm_[index].y - self.translations_merged_mm_[2].y, 
                                                               self.translations_merged_mm_[index].z - self.translations_merged_mm_[2].z)
         else:
           # Not filtering, translations_merged_ already calculated
+          self.velocities[index] = (self.translations_merged_ - self.translations_merged_last)/2.0
+          self.translations_merged_last = self.translations_merged_
           self.translations_merged_mm_[index] = Vector3( self.translations_merged_[index].x*1000,
                                                       self.translations_merged_[index].y*1000,
                                                       self.translations_merged_[index].z*1000)
@@ -292,6 +300,9 @@ class User():
   
   def joint_body_pos(self,j):
     return self.translations_merged_body_mm_[self.joint_by_name(j)]
+
+  def joint_velocity(self,joint):
+    return self.velocities[self.joint_by_name(joint)]
 
   def not_zero(self,joint1,joint2):
     nz = True
