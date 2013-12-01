@@ -51,7 +51,7 @@ from std_msgs.msg import String
 from math import fabs
 import os, collections, sys, math
 # PySide import
-from PySide.QtGui import * 
+from PySide.QtGui import *
 from PySide.QtCore import *
 from PySide import QtCore
 # wallframe import
@@ -77,7 +77,7 @@ class WallframeCursor(QWidget):
     self.label_alt_ = QLabel(self)
 
     self.label_.setPixmap(image)
-    self.label_.show()    
+    self.label_.show()
     self.label_.setAutoFillBackground(True)
     self.label_.setScaledContents(True)
     self.label_.setFixedSize(self.w_,self.h_)
@@ -141,7 +141,7 @@ class ModularMenu(QWidget):
                                             WallframeUserEvent,
                                             self.user_event_cb)
     self.toast_pub_ = rospy.Publisher("/wallframe/info/toast", String)
-    
+
     # ---- ROS get params -----
     # height
     if rospy.has_param("/wallframe/core/params/height"):
@@ -220,7 +220,7 @@ class ModularMenu(QWidget):
       rospy.logerr("WallframeAppMenu: parameter [height_percentage] not found on server")
     rospy.logwarn("WallframeAppMenu: height percentage set to " + str(self.height_perc_))
     self.height_ = int(self.height_*self.height_perc_)
-    
+
     # Get app list
     self.app_list_ = self.app_paths_.keys()
     rospy.logwarn("WallframeMenu: found " + str(len(self.app_list_)) + " applications")
@@ -228,7 +228,7 @@ class ModularMenu(QWidget):
     self.grid_set_up_ = False
     self.setup_grid()
     self.setWindowTitle("Wallframe Main Menu")
-    self.gridLayout_ = QGridLayout() 
+    self.gridLayout_ = QGridLayout()
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
     self.show()
     self.resize(self.width_, self.height_)
@@ -265,14 +265,14 @@ class ModularMenu(QWidget):
       self.qt_app_.exit()
     else:
       self.update_cursor()
-      pass      
+      pass
     pass
 
   def setup_grid(self):
-    self.max_x_ = 3
-    self.max_y_ = 2
+    self.max_x_ = 4
+    self.max_y_ = 6
     rospy.logwarn('WallframeMenu:  Grid size is '+str(self.max_x_)+' (w) by , '+str(self.max_y_)+' (h)')
-    self.cur_ind_x_ = 0 
+    self.cur_ind_x_ = 0
     self.cur_ind_y_ = 0
     self.grid_set_up_ = True
 
@@ -302,7 +302,7 @@ class ModularMenu(QWidget):
     y_center = int(self.height_/2)
     x_pos = int(x_center + (self.width_/x_total)*user_pos[0])
     y_pos = int(y_center + (-(self.height_/y_total)*user_pos[1]) - self.y_offset_)
-    
+
     if y_pos < 0.0:
       y_pos = 100
     if y_pos > self.height_:
@@ -318,6 +318,10 @@ class ModularMenu(QWidget):
 
   def assignWidgets(self):
     self.app_menu_items_.clear()
+    print self.app_paths_
+    num_apps = len(self.app_paths_.items())
+    grid_cols = (num_apps > self.max_y_) and self.max_y_ or num_apps_
+    grid_rows = num_apps / self.max_y_ + 1
     for app, app_path in self.app_paths_.items():
       label = QLabel(app,self)
       label.show()
@@ -326,7 +330,9 @@ class ModularMenu(QWidget):
       label.setPixmap(image)
       label.setAutoFillBackground(True)
       label.setScaledContents(True)
-      label.setFixedSize((self.width_/(16.0/4.0))-self.border_, (self.height_/(9.0/4.0))-self.border_)
+      label_width = min(self.width_ / float(grid_cols), self.height_ / float(grid_rows)) - self.border_
+      label.setFixedSize(label_width, label_width)
+      # label.setFixedSize((self.width_/(16.0/4.0))-self.border_, (self.height_/(9.0/4.0))-self.border_)
       label.setAttribute(QtCore.Qt.WA_TranslucentBackground)
       label.setStyleSheet("background:transparent;")
       nextx, nexty = self.next_pos()
@@ -344,7 +350,7 @@ class ModularMenu(QWidget):
           self.focused_user_id_ = user.wallframe_id
         self.users_[user.wallframe_id] = user
     pass
-  
+
   def user_event_cb(self, msg):
     if self.run_:
       ### Workspace Events ###
@@ -401,8 +407,8 @@ class ModularMenu(QWidget):
             self.toast_pub_.publish(String('Apps Closed'))
           except rospy.ServiceException, e:
             rospy.logerr("Service call failed: %s" % e)
-        # Click to start app  
-        if all( [ msg.message == 'left_elbow_click', 
+        # Click to start app
+        if all( [ msg.message == 'left_elbow_click',
                   self.current_app_name_ != "NONE"] ):
           self.signal_click_.emit()
           if self.hidden_ == False:
@@ -419,7 +425,7 @@ class ModularMenu(QWidget):
               self.toast_pub_.publish(String(self.current_app_name_ + ' Running'))
             except rospy.ServiceException, e:
               rospy.logerr("Service call failed: %s" % e)
-        elif all( [ msg.message == 'left_elbow_click', 
+        elif all( [ msg.message == 'left_elbow_click',
                   self.current_app_name_ == "NONE"] ):
           self.signal_click_.emit()
 
@@ -449,7 +455,7 @@ class ModularMenu(QWidget):
         for appname, appwidget in self.app_menu_items_.items():
           if appwidget.geometry().contains(cursor_position[0],cursor_position[1]):
             self.current_app_name_ = appname
-      
+
   def run(self):
     self.show()
     self.qt_app_.exec_()
@@ -459,4 +465,4 @@ class ModularMenu(QWidget):
 ### MAIN ###
 if __name__ == "__main__":
   menu = ModularMenu()
-  menu.run() 
+  menu.run()

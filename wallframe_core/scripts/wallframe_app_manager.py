@@ -80,7 +80,7 @@ class WallframeAppManager():
     rospy.init_node('wallframe_app_manager',anonymous=True)
     # ROS Subscribers
     self.wallframe_event_sub = rospy.Subscriber("/wallframe/events", String, self.wallframe_event_cb)
-    
+
     # Load Apps
     self.load_application_manifest()
     self.load_applications()
@@ -93,17 +93,17 @@ class WallframeAppManager():
     rospy.logwarn("WallframeAppManager: Service Ready [ close_app ]")
     self.close_all_apps_srv_ = rospy.Service('app_manager/close_all_apps', wallframe_core.srv.close_all_apps, self.close_all_apps_service)
     rospy.logwarn("WallframeAppManager: Service Ready [ close_all_apps ]")
-    
+
     # Running
-    rospy.logwarn("WallframeAppManager: Started")  
+    rospy.logwarn("WallframeAppManager: Started")
     rospy.spin()
-    
+
     # Quitting
-    rospy.logwarn("WallframeAppManager: Cleaning up running applications")  
+    rospy.logwarn("WallframeAppManager: Cleaning up running applications")
     self.shutdown_all_apps()
     self.clean_up()
     rospy.logwarn("WallframeAppManager: Finished")
-  
+
   def load_app_service(self,req):
     message = "WallframeAppManager: Service Call to LOAD APP ["+req.app_name+"]"
     if self.launch_app(req.app_name) == True:
@@ -128,7 +128,7 @@ class WallframeAppManager():
     message = "WallframeAppManager: Service Call to CLOSE ALL APPS -- "
     if len(self.active_app_launchers_) == 0:
       rospy.logwarn(message + "FAILED -- No apps are running")
-      return "CLOSE ALL APPS -- FAIL -- No apps are running" 
+      return "CLOSE ALL APPS -- FAIL -- No apps are running"
     else:
       self.shutdown_all_apps()
       rospy.logwarn(message + "SUCCESS")
@@ -147,7 +147,7 @@ class WallframeAppManager():
       if rospy.has_param("/wallframe/core/available_apps"):
         rospy.delete_param("/wallframe/core/available_apps")
         print("Remaining parameters cleaned up")
-    pass    
+    pass
 
   def shutdown_all_apps(self):
     for full_app_name,app_process in self.active_app_launchers_.items():
@@ -215,8 +215,8 @@ class WallframeAppManager():
       if appSubstring in split_path[len(split_path)-1]:
         app_launch_file = split_path[len(split_path)-1]
         app_launch_name = app_launch_file[:len(app_launch_file)-len('.launch')]
-        app_short_name = app_launch_name[app_launch_name.find("_app_")+ len(appSubstring) - 1:]
-        app_short_name = app_launch_name[len('wallframe_app_'):]
+        app_short_name = app_launch_name[app_launch_name.find("_app_")+ len(appSubstring):]
+        # app_short_name = app_launch_name[len('wallframe_app_'):]
         if split_path[len(split_path)-2] == 'launch':
           app_launch_package = split_path[len(split_path)-3]
         else:
@@ -227,7 +227,7 @@ class WallframeAppManager():
           app_package_path = '/'.join(full_path_split[:len(full_path_split)-2])
         else:
           app_package_path = '/'.join(full_path_split[:len(full_path_split)-1])
-        
+
         available_app_list[app_short_name] = app_package_path
         rospy.set_param("/wallframe/core/available_app/" + app_launch_name, app_package_path)
 
