@@ -32,6 +32,8 @@
           y: 0
           width: 1400
           height: 900
+          cursor_width: 50
+          cursor_height: 50
         default_app: image_storm
       infobar:
         params:

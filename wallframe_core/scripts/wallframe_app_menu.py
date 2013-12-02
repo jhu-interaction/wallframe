@@ -67,8 +67,16 @@ from wallframe_core.srv import *
 class WallframeCursor(QWidget):
   def __init__(self,image,image_alt,parent):
     super(WallframeCursor,self).__init__(parent)
-    self.w_ = 350
-    self.h_ = 350
+
+    if rospy.has_param("/wallframe/core/params/cursor_height"):
+        self.h_ = rospy.get_param("/wallframe/core/params/cursor_height")
+    else:
+        self.h_= 350
+    if rospy.has_param("/wallframe/core/params/cursor_width"):
+        self.w_ = rospy.get_param("/wallframe/core/params/cursor_width")
+    else:
+        self.w_= 350
+
     self.show()
     self.resize(self.w_,self.h_)
     self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
