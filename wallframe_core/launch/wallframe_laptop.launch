@@ -13,7 +13,9 @@
           type="wallframe_app_manager.py" output="screen"/>
 
   </group>
-
+  
+  <!-- Infobar at the bottom of the screen that shows user avatar and messages -->
+  <!-- <node pkg="wallframe_core" name="wallframe_infobar" type="wallframe_infobar.py" output="screen"/> -->
   <!-- Parameters for the application menu -->
   <param name="/wallframe/menu/params/cursor_path" value="$(find wallframe_core)/assets/cursor_open.png" /> 
   <param name="/wallframe/menu/params/cursor_path_alt" value="$(find wallframe_core)/assets/cursor_closed.png" /> 
