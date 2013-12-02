@@ -326,7 +326,6 @@ class ModularMenu(QWidget):
 
   def assignWidgets(self):
     self.app_menu_items_.clear()
-    print self.app_paths_
     num_apps = len(self.app_paths_.items())
     grid_cols = (num_apps > self.max_y_) and self.max_y_ or num_apps_
     grid_rows = num_apps / self.max_y_ + 1
