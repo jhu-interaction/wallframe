@@ -62,7 +62,7 @@ from wallframe_msgs.msg import WallframeUserEvent
 # srv
 import wallframe_core
 from wallframe_core.srv import *
-
+from tileflow import TileflowWidget
 
 class WallframeCursor(QWidget):
   def __init__(self,image,image_alt,parent):
@@ -113,7 +113,7 @@ class WallframeCursor(QWidget):
     self.move(pos[0]-self.w_/2, pos[1]-self.h_/2)
     pass
 
-class ModularMenu(QWidget):
+class AppMenu(QWidget):
   signal_hide_ = QtCore.Signal()
   signal_show_ = QtCore.Signal()
   signal_click_ = QtCore.Signal()
@@ -132,7 +132,7 @@ class ModularMenu(QWidget):
     self.run_ = False
 
     # ROS
-    rospy.init_node('wallframe_app_menu', anonymous=True)
+    rospy.init_node('wallframe_app_tileflow_menu', anonymous=True)
 
     # ---- ROS subscriber ---
     self.user_state_sub_ = rospy.Subscriber("/wallframe/users/state",
@@ -231,11 +231,12 @@ class ModularMenu(QWidget):
     self.setup_grid()
     self.setWindowTitle("Wallframe Main Menu")
     self.gridLayout_ = QGridLayout()
+    self.boxLayout_ = QHBoxLayout()
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
     self.show()
     self.resize(self.width_, self.height_)
     self.move(self.x_,self.y_)
-    self.setLayout(self.gridLayout_)
+    self.setLayout(self.boxLayout_)
     # self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
     self.background_ = QLabel(self)
@@ -246,8 +247,10 @@ class ModularMenu(QWidget):
     self.background_.setAutoFillBackground(True)
     self.background_.setPixmap(self.background_path_)
 
+    # Init TileflowWidget
+    self.initTileflow()
     # Create App Widgets
-    self.assignWidgets() # create widget
+    # self.assignWidgets() # create widget
     # Timers
     self.ok_timer_ = QtCore.QTimer()
     self.connect(self.ok_timer_, QtCore.SIGNAL("timeout()"), self.check_ok)
@@ -339,6 +342,12 @@ class ModularMenu(QWidget):
       nextx, nexty = self.next_pos()
       self.gridLayout_.addWidget(label, nextx, nexty )
       self.app_menu_items_[app] = label
+
+  def initTileflow(self):
+    res_list = [item[1] + '/menu_icon.png' for item in self.app_paths_.items()]
+    print res_list
+    self.tileflowWidget_ = TileflowWidget(self, res_list)
+    self.boxLayout_.addWidget(self.tileflowWidget_)
 
   def user_state_cb(self, msg):
     if self.run_:
@@ -465,5 +474,5 @@ class ModularMenu(QWidget):
 
 ### MAIN ###
 if __name__ == "__main__":
-  menu = ModularMenu()
+  menu = AppMenu()
   menu.run()

@@ -215,7 +215,7 @@ class WallframeAppManager():
       if appSubstring in split_path[len(split_path)-1]:
         app_launch_file = split_path[len(split_path)-1]
         app_launch_name = app_launch_file[:len(app_launch_file)-len('.launch')]
-        app_short_name = app_launch_name[app_launch_name.find("_app_")+ len(appSubstring):]
+        app_short_name = app_launch_name[app_launch_name.find("_app_")+ len(appSubstring) - 1:]
         # app_short_name = app_launch_name[len('wallframe_app_'):]
         if split_path[len(split_path)-2] == 'launch':
           app_launch_package = split_path[len(split_path)-3]
