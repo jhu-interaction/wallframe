@@ -90,6 +90,8 @@ class TileflowWidget(QtOpenGL.QGLWidget):
 
         return list_start
 
+    def update_cursor(self, cursor_position):
+        pass
     def paintGL(self):
         GL.glMatrixMode(GL.GL_MODELVIEW)
         GL.glLoadIdentity()

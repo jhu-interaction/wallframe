@@ -230,13 +230,12 @@ class AppMenu(QWidget):
     self.grid_set_up_ = False
     self.setup_grid()
     self.setWindowTitle("Wallframe Main Menu")
-    self.gridLayout_ = QGridLayout()
-    self.boxLayout_ = QHBoxLayout()
+    self.box_layout_ = QHBoxLayout()
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
     self.show()
     self.resize(self.width_, self.height_)
     self.move(self.x_,self.y_)
-    self.setLayout(self.boxLayout_)
+    self.setLayout(self.box_layout_)
     # self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
     self.background_ = QLabel(self)
@@ -256,14 +255,15 @@ class AppMenu(QWidget):
     self.connect(self.ok_timer_, QtCore.SIGNAL("timeout()"), self.check_ok)
     self.ok_timer_.start(15)
     # Cursor
-    self.cursor_ = WallframeCursor(self.cursor_path_,self.cursor_path_alt_,self)
-    self.cursor_.set_position([self.width_/2,self.height_/2])
-    self.cursor_.show()
+    # self.cursor_ = WallframeCursor(self.cursor_path_,self.cursor_path_alt_,self)
+    # self.cursor_.set_position([self.width_/2,self.height_/2])
+    # self.cursor_.show()
     self.run_ = True
     # Hide and Show Connections
     self.signal_show_.connect(self.show_menu)
     self.signal_hide_.connect(self.hide_menu)
-    self.signal_click_.connect(self.cursor_.click)
+    #XXX: cursor click!
+    self.signal_click_.connect(self.click)
 
   def check_ok(self):
     if rospy.is_shutdown():
@@ -281,19 +281,19 @@ class AppMenu(QWidget):
     self.cur_ind_y_ = 0
     self.grid_set_up_ = True
 
-  def next_pos(self):
-    # check if grid ind has been set
-    if not self.grid_set_up_:
-      self.setup_grid()
-    ind_x = self.cur_ind_x_
-    ind_y = self.cur_ind_y_
-    # change line if necessary
-    self.cur_ind_y_ += 1
-    if self.cur_ind_y_ == self.max_y_:
-      self.cur_ind_y_ = 0
-      self.cur_ind_x_ += 1
-    # return current grid index
-    return ind_x, ind_y
+  # def next_pos(self):
+  #   # check if grid ind has been set
+  #   if not self.grid_set_up_:
+  #     self.setup_grid()
+  #   ind_x = self.cur_ind_x_
+  #   ind_y = self.cur_ind_y_
+  #   # change line if necessary
+  #   self.cur_ind_y_ += 1
+  #   if self.cur_ind_y_ == self.max_y_:
+  #     self.cur_ind_y_ = 0
+  #     self.cur_ind_x_ += 1
+  #   # return current grid index
+  #   return ind_x, ind_y
 
   def convert_workspace(self,user_pos):
     screen_pos = []
@@ -321,33 +321,33 @@ class AppMenu(QWidget):
     return screen_pos
     pass
 
-  def assignWidgets(self):
-    self.app_menu_items_.clear()
-    num_apps = len(self.app_paths_.items())
-    grid_cols = (num_apps > self.max_y_) and self.max_y_ or num_apps
-    grid_rows = num_apps / self.max_y_ + 1
-    for app, app_path in self.app_paths_.items():
-      label = QLabel(app,self)
-      label.show()
-      image = app_path + '/menu_icon.png'
-      rospy.logwarn('WallframeMenu:  Adding button for '+app+" app.")
-      label.setPixmap(image)
-      label.setAutoFillBackground(True)
-      label.setScaledContents(True)
-      label_width = min(self.width_ / float(grid_cols), self.height_ / float(grid_rows)) - self.border_
-      label.setFixedSize(label_width, label_width)
-      # label.setFixedSize((self.width_/(16.0/4.0))-self.border_, (self.height_/(9.0/4.0))-self.border_)
-      label.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-      label.setStyleSheet("background:transparent;")
-      nextx, nexty = self.next_pos()
-      self.gridLayout_.addWidget(label, nextx, nexty )
-      self.app_menu_items_[app] = label
+  # def assignWidgets(self):
+  #   self.app_menu_items_.clear()
+  #   num_apps = len(self.app_paths_.items())
+  #   grid_cols = (num_apps > self.max_y_) and self.max_y_ or num_apps
+  #   grid_rows = num_apps / self.max_y_ + 1
+  #   for app, app_path in self.app_paths_.items():
+  #     label = QLabel(app,self)
+  #     label.show()
+  #     image = app_path + '/menu_icon.png'
+  #     rospy.logwarn('WallframeMenu:  Adding button for '+app+" app.")
+  #     label.setPixmap(image)
+  #     label.setAutoFillBackground(True)
+  #     label.setScaledContents(True)
+  #     label_width = min(self.width_ / float(grid_cols), self.height_ / float(grid_rows)) - self.border_
+  #     label.setFixedSize(label_width, label_width)
+  #     # label.setFixedSize((self.width_/(16.0/4.0))-self.border_, (self.height_/(9.0/4.0))-self.border_)
+  #     label.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+  #     label.setStyleSheet("background:transparent;")
+  #     nextx, nexty = self.next_pos()
+  #     self.gridLayout_.addWidget(label, nextx, nexty )
+  #     self.app_menu_items_[app] = label
 
   def initTileflow(self):
     res_list = [item[1] + '/menu_icon.png' for item in self.app_paths_.items()]
     print res_list
     self.tileflowWidget_ = TileflowWidget(self, res_list)
-    self.boxLayout_.addWidget(self.tileflowWidget_)
+    self.box_layout_.addWidget(self.tileflowWidget_)
 
   def user_state_cb(self, msg):
     if self.run_:
@@ -459,12 +459,18 @@ class AppMenu(QWidget):
         cursorx = self.users_[self.focused_user_id_].translations_mm[8].x
         cursory = self.users_[self.focused_user_id_].translations_mm[8].y
         cursor_position = self.convert_workspace([cursorx,cursory])
-        self.cursor_.set_position(cursor_position)
+
+        self.tileflowWidget_.update_cursor(cursor_position)
+
+        # self.cursor_.set_position(cursor_position)
+
         # Update which app is under cursor (mouse)
-        self.current_app_name_ = "NONE"
-        for appname, appwidget in self.app_menu_items_.items():
-          if appwidget.geometry().contains(cursor_position[0],cursor_position[1]):
-            self.current_app_name_ = appname
+        # self.current_app_name_ = "NONE"
+        # for appname, appwidget in self.app_menu_items_.items():
+        #   if appwidget.geometry().contains(cursor_position[0],cursor_position[1]):
+        #     self.current_app_name_ = appname
+  def click(self):
+    print "click"
 
   def run(self):
     self.show()
