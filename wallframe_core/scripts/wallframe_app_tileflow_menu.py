@@ -59,59 +59,11 @@ from PySide import QtCore
 from wallframe_msgs.msg import WallframeUser
 from wallframe_msgs.msg import WallframeUserArray
 from wallframe_msgs.msg import WallframeUserEvent
+from wallframe_extra.msg import WallframeMouseState
 # srv
 import wallframe_core
 from wallframe_core.srv import *
 from tileflow import TileflowWidget
-
-class WallframeCursor(QWidget):
-  def __init__(self,image,image_alt,parent):
-    super(WallframeCursor,self).__init__(parent)
-
-    self.h_ = rospy.get_param("/wallframe/core/params/cursor_height", 350)
-    self.w_ = rospy.get_param("/wallframe/core/params/cursor_width", 350)
-
-    self.show()
-    self.resize(self.w_,self.h_)
-    self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-    self.setStyleSheet("background:transparent;")
-    self.label_ = QLabel(self)
-    self.label_alt_ = QLabel(self)
-
-    self.label_.setPixmap(image)
-    self.label_.show()
-    self.label_.setAutoFillBackground(True)
-    self.label_.setScaledContents(True)
-    self.label_.setFixedSize(self.w_,self.h_)
-    self.label_.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-    self.label_.setStyleSheet("background:transparent;")
-    self.label_.move(0,0)
-
-    self.label_alt_.setPixmap(image_alt)
-    self.label_alt_.show()
-    self.label_alt_.setAutoFillBackground(True)
-    self.label_alt_.setScaledContents(True)
-    self.label_alt_.setFixedSize(self.w_,self.h_)
-    self.label_alt_.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-    self.label_alt_.setStyleSheet("background:transparent;")
-    self.label_alt_.move(0,0)
-    self.label_alt_.hide()
-
-  def click(self):
-    print "click"
-    self.label_.hide()
-    self.label_alt_.show()
-    self.update()
-    QTimer.singleShot(250, self.reset)
-
-  def reset(self):
-    self.label_.show()
-    self.label_alt_.hide()
-    self.update()
-
-  def set_position(self,pos):
-    self.move(pos[0]-self.w_/2, pos[1]-self.h_/2)
-    pass
 
 class AppMenu(QWidget):
   signal_hide_ = QtCore.Signal()
@@ -130,6 +82,7 @@ class AppMenu(QWidget):
     self.app_menu_items_ = {}         # dict: (app_name, qwidget)
     self.hidden_ = False
     self.run_ = False
+    self.mouse_state = (0, 0)
 
     # ROS
     rospy.init_node('wallframe_app_tileflow_menu', anonymous=True)
@@ -142,6 +95,10 @@ class AppMenu(QWidget):
     self.user_event_sub_ = rospy.Subscriber("/wallframe/users/events",
                                             WallframeUserEvent,
                                             self.user_event_cb)
+
+    self.mouse_state_sub = rospy.Subscriber("/wallframe/extra/mousestate",
+                                        WallframeMouseState,
+                                        self.mouse_state_cb)
     self.toast_pub_ = rospy.Publisher("/wallframe/info/toast", String)
 
     # ---- ROS get params -----
@@ -359,7 +316,11 @@ class AppMenu(QWidget):
         if user.focused == True:
           self.focused_user_id_ = user.wallframe_id
         self.users_[user.wallframe_id] = user
-    pass
+
+  def mouse_state_cb(self, msg):
+    if self.run_:
+      print "mouse_state: ", msg.x, msg.y
+      self.mouse_state = (msg.x, msg.y)
 
   def user_event_cb(self, msg):
     if self.run_:
@@ -453,14 +414,24 @@ class AppMenu(QWidget):
     rospy.logwarn("WallframeMenu: setting to visible")
     pass
 
+  def get_cursor_position(self):
+    # pos = self.users_[self.focused_user_id_].translations_mm[8]
+    pos = self.mouse_state
+    return pos
+
   def update_cursor(self):
     if self.run_:
-      if self.focused_user_id_ != -1:
-        cursorx = self.users_[self.focused_user_id_].translations_mm[8].x
-        cursory = self.users_[self.focused_user_id_].translations_mm[8].y
-        cursor_position = self.convert_workspace([cursorx,cursory])
+      # if self.focused_user_id_ != -1:
+      #   cursorx, cursory = self.cursor_position()
+      #   cursor_position = self.convert_workspace([cursorx,cursory])
 
-        self.tileflowWidget_.update_cursor(cursor_position)
+      #   self.tileflowWidget_.update_cursor(cursor_position)
+
+      cursorx, cursory = self.get_cursor_position()
+      cursor_position = self.convert_workspace([cursorx,cursory])
+
+      self.tileflowWidget_.update_cursor(cursor_position)
+
 
         # self.cursor_.set_position(cursor_position)
 
