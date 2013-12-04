@@ -415,22 +415,22 @@ class AppMenu(QWidget):
     pass
 
   def get_cursor_position(self):
-    # pos = self.users_[self.focused_user_id_].translations_mm[8]
-    pos = self.mouse_state
+    pos = self.users_[self.focused_user_id_].translations_mm[8]
+    # pos = self.mouse_state
     return pos
 
   def update_cursor(self):
     if self.run_:
-      # if self.focused_user_id_ != -1:
-      #   cursorx, cursory = self.cursor_position()
-      #   cursor_position = self.convert_workspace([cursorx,cursory])
+      if self.focused_user_id_ != -1:
+        cursorx, cursory = self.cursor_position()
+        cursor_position = self.convert_workspace([cursorx,cursory])
 
-      #   self.tileflowWidget_.update_cursor(cursor_position)
+        self.tileflowWidget_.update_cursor(cursor_position)
 
-      cursorx, cursory = self.get_cursor_position()
-      cursor_position = self.convert_workspace([cursorx,cursory])
+      # cursorx, cursory = self.get_cursor_position()
+      # cursor_position = self.convert_workspace([cursorx,cursory])
 
-      self.tileflowWidget_.update_cursor(cursor_position)
+      # self.tileflowWidget_.update_cursor(cursor_position)
 
 
         # self.cursor_.set_position(cursor_position)

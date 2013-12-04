@@ -19,6 +19,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         self.width = 0
         self.clearColor = QtCore.Qt.black
         self.lastPos = QtCore.QPoint()
+        self.lastCursor = (0, 0)
         self.res_list = res_list
         self.tiles = []
         self.max = 6
@@ -91,6 +92,19 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         return list_start
 
     def update_cursor(self, cursor_position):
+        cur_x, cur_y = cursor_position
+        last_x, last_y = self.lastCursor
+        dx = cur_x - last_x
+        offset = self.offset - float(dx) * 6 / (self.width * 0.6)
+        if offset < 0:
+            self.offset = 0
+        elif offset > len(self.res_list) - 1:
+            self.offset = len(self.res_list) - 1
+        else:
+            self.offset = offset
+        self.updateGL()
+
+        self.lastCursor = (cur_x, cur_y)
         print cursor_position
 
     def paintGL(self):
