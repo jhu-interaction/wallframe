@@ -1,0 +1,17 @@
+<package>
+  <description brief="wallframe_extra">
+
+     wallframe_extra
+
+  </description>
+  <author>Yifan Ge</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/wallframe_extra</url>
+  <depend package="std_msgs"/>
+  <depend package="rospy"/>
+  <depend package="roscpp"/>
+
+</package>
+
+

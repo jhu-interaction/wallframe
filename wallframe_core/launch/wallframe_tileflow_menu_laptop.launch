@@ -11,7 +11,9 @@
     <!-- create app_manager node -->
     <node pkg="wallframe_core" name="wallframe_app_manager"
           type="wallframe_app_manager.py" output="screen"/>
-
+    
+    <node pkg="wallframe_extra" name="wallframe_simple_mouse"
+          type="wallframe_simple_mouse.py" output="screen" />
   </group>
   
   <!-- Infobar at the bottom of the screen that shows user avatar and messages -->
