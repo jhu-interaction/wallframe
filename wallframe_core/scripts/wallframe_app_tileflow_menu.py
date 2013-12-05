@@ -421,15 +421,18 @@ class AppMenu(QWidget):
     rospy.logwarn("WallframeMenu: setting to visible")
     pass
 
-  def get_cursor_position(self):
+  def get_cursor_position_sensor(self):
     pos = self.users_[self.focused_user_id_].translations_mm[8]
-    # pos = self.mouse_state
     return (pos.x, pos.y)
+
+  def get_cursor_position_mouse(self):
+    pos = self.mouse_state
+    return self.mouse_state
 
   def update_cursor(self):
     if self.run_:
       if self.focused_user_id_ != -1:
-        cursorx, cursory = self.get_cursor_position()
+        cursorx, cursory = self.get_cursor_position_sensor()
         cursor_position = self.convert_workspace([cursorx,cursory])
 
         self.tileflowWidget_.update_cursor(cursor_position)
