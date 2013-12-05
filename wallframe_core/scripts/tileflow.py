@@ -22,6 +22,8 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         self.lastCursor = (0, 0)
         self.res_list = res_list
         self.tiles = []
+        self.steps_in_direction = 0
+        self.direction = -1
         self.max = 6
         self.offset = 3
         self.mouseDown = False
@@ -53,7 +55,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         for res_path in self.res_list:
             self.tiles.append(Tile(self.bindTexture(QtGui.QPixmap(res_path))))
         self.first_tile = self.makeTiles()
-    
+
     def setResponding(self):
       self.responding = True
 
@@ -106,15 +108,36 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         d = float(dx) / self.width
         print "D: ", abs(d)
         if self.responding and abs(d) >= 0.025:
-          self.mouseDown = True
-          offset = self.offset - 4 * d
-          if offset < 0:
-              self.offset = 0
-          elif offset > len(self.res_list) - 1:
-              self.offset = len(self.res_list) - 1
-          else:
-              self.offset = offset
-          self.updateGL()
+            if d < 0:
+                cur_dir = -1
+            else:
+                cur_dir  = 1
+
+            if cur_dir == self.direction or self.direction == 0:
+                self.steps_in_direction += 1
+                self.direction = cur_dir
+
+            if self.steps_in_direction == 5 and cur_dir != self.direction:
+                self.steps_in_direction = 0
+                self.direction = 0
+                self.responding = False
+                self.mouseDown = False
+                QtCore.QTimer.singleShot(200, self.setResponding)
+            else:
+                self.mouseDown = True
+                offset = self.offset - 5 * d
+                if offset < 0:
+                    self.offset = 0
+                elif offset > len(self.res_list) - 1:
+                    self.offset = len(self.res_list) - 1
+                else:
+                    self.offset = offset
+        # if self.mouseDown == T\rue and abs(d) <= 0.010:
+        #     self.mouseDown = False
+        #     self.\responding = False
+        #     QtCo\re.QTime\r.singleShot(200, self.setResponding)
+
+        self.updateGL()
 
         self.lastCursor = (cur_x, cur_y)
 
@@ -159,7 +182,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
                 self.updateGL()
             else:
               self.responding = False
-              QtCore.QTimer.singleShot(100, self.setResponding)
+              QtCore.QTimer.singleShot(350, self.setResponding)
 
     def releaseControl(self):
         self.mouseDown = False
