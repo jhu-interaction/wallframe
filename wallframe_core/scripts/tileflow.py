@@ -16,6 +16,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
     def __init__(self, parent, res_list=[]):
         QtOpenGL.QGLWidget.__init__(self, parent)
 
+        self.parent = parent
         self.width = 0
         self.clearColor = QtCore.Qt.black
         self.lastPos = QtCore.QPoint()
@@ -106,7 +107,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         last_x, last_y = self.lastCursor
         dx = cur_x - last_x
         d = float(dx) / self.width
-        print "D: ", abs(d)
+        # print "D: ", abs(d)
         if self.responding and abs(d) >= 0.025:
             if d < 0:
                 cur_dir = -1
@@ -140,6 +141,15 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         self.updateGL()
 
         self.lastCursor = (cur_x, cur_y)
+
+    def click(self):
+        offset = self.offset
+        if offset <= 0:
+            offset = 0
+        if offset > len(self.res_list) - 1:
+            offset = len(self.res_list) - 1
+        mid = int(math.floor(offset + 0.5))
+        self.parent.clicked_on(mid)
 
     def paintGL(self):
         GL.glMatrixMode(GL.GL_MODELVIEW)

@@ -79,7 +79,7 @@ class AppMenu(QWidget):
     self.users_ = {}             # dict: (wallframe_id, user)
     self.num_users_ = 0          # total num of users
     self.focused_user_id_ = -1   # focused user
-    self.app_menu_items_ = {}         # dict: (app_name, qwidget)
+    self.app_menu_items_ = []         # list of the app names
     self.hidden_ = False
     self.run_ = False
     self.mouse_state = (0, 0)
@@ -302,9 +302,9 @@ class AppMenu(QWidget):
 
   def initTileflow(self):
     res_list = [item[1] + '/menu_icon.png' for item in self.app_paths_.items()]
-    print res_list
     self.tileflowWidget_ = TileflowWidget(self, res_list)
     self.box_layout_.addWidget(self.tileflowWidget_)
+    self.app_menu_items_ = [item[0] for item in self.app_paths_.items()]
 
   def user_state_cb(self, msg):
     if self.run_:
@@ -336,15 +336,16 @@ class AppMenu(QWidget):
                                                      wallframe_core.srv.close_all_apps)
               ret_success = self.srv_close_all_apps('none')
               # If close all apps is successful, hide menu and run default app
-              self.signal_hide_.emit()
-              rospy.wait_for_service('wallframe/core/app_manager/load_app')
-              try:
-                self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
-                                                       wallframe_core.srv.load_app)
-                ret_success = self.srv_load_app(self.default_app_name_)
-                self.toast_pub_.publish(String('Screensaver Running'))
-              except rospy.ServiceException, e:
-                rospy.logerr("Service call failed: %s" % e)
+              self.load_app(self.default_app_name_)
+              # self.signal_hide_.emit()
+              # rospy.wait_for_service('wallframe/core/app_manager/load_app')
+              # try:
+              #   self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
+              #                                          wallframe_core.srv.load_app)
+              #   ret_success = self.srv_load_app(self.default_app_name_)
+              #   self.toast_pub_.publish(String('Screensaver Running'))
+              # except rospy.ServiceException, e:
+              #   rospy.logerr("Service call failed: %s" % e)
             except rospy.ServiceException, e:
               rospy.logerr("Service call failed: %s" % e)
         else:
@@ -379,26 +380,32 @@ class AppMenu(QWidget):
           except rospy.ServiceException, e:
             rospy.logerr("Service call failed: %s" % e)
         # Click to start app
-        if all( [ msg.message == 'left_elbow_click',
-                  self.current_app_name_ != "NONE"] ):
+        if msg.message == 'left_elbow_click':
+          print "captured left_elbow_click"
           self.signal_click_.emit()
           if self.hidden_ == False:
             print msg.message
             rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
-            self.toast_pub_.publish(String('Loading App ' + self.current_app_name_))
-            rospy.wait_for_service('wallframe/core/app_manager/load_app')
-            try:
-              self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
-                                                     wallframe_core.srv.load_app)
-              ret_success = self.srv_load_app(self.current_app_name_)
-              print ret_success
-              self.signal_hide_.emit()
-              self.toast_pub_.publish(String(self.current_app_name_ + ' Running'))
-            except rospy.ServiceException, e:
-              rospy.logerr("Service call failed: %s" % e)
-        elif all( [ msg.message == 'left_elbow_click',
-                  self.current_app_name_ == "NONE"] ):
-          self.signal_click_.emit()
+            self.tileflowWidget_.click()
+
+
+  def clicked_on(self, ind):
+    current_app_name = self.app_menu_items_[ind]
+    print "clicked on " + current_app_name
+    self.load_app(current_app_name)
+
+  def load_app(self, app_name):
+    self.toast_pub_.publish(String('Loading App ' + app_name))
+    self.signal_hide_.emit()
+    rospy.wait_for_service('wallframe/core/app_manager/load_app')
+    try:
+      self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
+                                             wallframe_core.srv.load_app)
+      ret_success = self.srv_load_app(app_name)
+      print ret_success
+      self.toast_pub_.publish(String(app_name + " running"))
+    except rospy.ServiceException, e:
+      rospy.logerr("Service call failed: %s" % e)
 
   def hide_menu(self):
     self.hide()
