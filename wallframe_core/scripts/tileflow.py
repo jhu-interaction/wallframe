@@ -25,10 +25,15 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         self.max = 6
         self.offset = 3
         self.mouseDown = False
+        self.responding = True
         # self.width = 533
         timer = QtCore.QTimer(self)
         timer.timeout.connect(self.focusTile)
         timer.start(20)
+
+        releaseTimer = QtCore.QTimer(self)
+        releaseTimer.timeout.connect(self.releaseControl)
+        releaseTimer.start(200)
 
     def set_resources(self, res_list):
         self.res_list = res_list
@@ -48,6 +53,9 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         for res_path in self.res_list:
             self.tiles.append(Tile(self.bindTexture(QtGui.QPixmap(res_path))))
         self.first_tile = self.makeTiles()
+    
+    def setResponding(self):
+      self.responding = True
 
     def makeTiles(self):
         ind = list_start = GL.glGenLists(len(self.res_list))
@@ -95,17 +103,20 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         cur_x, cur_y = cursor_position
         last_x, last_y = self.lastCursor
         dx = cur_x - last_x
-        offset = self.offset - float(dx) * 6 / (self.width * 0.6)
-        if offset < 0:
-            self.offset = 0
-        elif offset > len(self.res_list) - 1:
-            self.offset = len(self.res_list) - 1
-        else:
-            self.offset = offset
-        self.updateGL()
+        d = float(dx) / self.width
+        print "D: ", abs(d)
+        if self.responding and abs(d) >= 0.025:
+          self.mouseDown = True
+          offset = self.offset - 4 * d
+          if offset < 0:
+              self.offset = 0
+          elif offset > len(self.res_list) - 1:
+              self.offset = len(self.res_list) - 1
+          else:
+              self.offset = offset
+          self.updateGL()
 
         self.lastCursor = (cur_x, cur_y)
-        print cursor_position
 
     def paintGL(self):
         GL.glMatrixMode(GL.GL_MODELVIEW)
@@ -146,6 +157,12 @@ class TileflowWidget(QtOpenGL.QGLWidget):
             if not abs(target - self.offset) <= 0.01:
                 self.offset += (target - self.offset) / 3
                 self.updateGL()
+            else:
+              self.responding = False
+              QtCore.QTimer.singleShot(100, self.setResponding)
+
+    def releaseControl(self):
+        self.mouseDown = False
 
     def resizeGL(self, width, height):
         self.width = width
