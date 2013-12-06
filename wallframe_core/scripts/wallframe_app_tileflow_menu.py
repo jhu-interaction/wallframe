@@ -278,33 +278,13 @@ class AppMenu(QWidget):
     return screen_pos
     pass
 
-  # def assignWidgets(self):
-  #   self.app_menu_items_.clear()
-  #   num_apps = len(self.app_paths_.items())
-  #   grid_cols = (num_apps > self.max_y_) and self.max_y_ or num_apps
-  #   grid_rows = num_apps / self.max_y_ + 1
-  #   for app, app_path in self.app_paths_.items():
-  #     label = QLabel(app,self)
-  #     label.show()
-  #     image = app_path + '/menu_icon.png'
-  #     rospy.logwarn('WallframeMenu:  Adding button for '+app+" app.")
-  #     label.setPixmap(image)
-  #     label.setAutoFillBackground(True)
-  #     label.setScaledContents(True)
-  #     label_width = min(self.width_ / float(grid_cols), self.height_ / float(grid_rows)) - self.border_
-  #     label.setFixedSize(label_width, label_width)
-  #     # label.setFixedSize((self.width_/(16.0/4.0))-self.border_, (self.height_/(9.0/4.0))-self.border_)
-  #     label.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-  #     label.setStyleSheet("background:transparent;")
-  #     nextx, nexty = self.next_pos()
-  #     self.gridLayout_.addWidget(label, nextx, nexty )
-  #     self.app_menu_items_[app] = label
 
   def initTileflow(self):
     res_list = [item[1] + '/menu_icon.png' for item in self.app_paths_.items()]
     self.tileflowWidget_ = TileflowWidget(self, res_list)
     self.box_layout_.addWidget(self.tileflowWidget_)
     self.app_menu_items_ = [item[0] for item in self.app_paths_.items()]
+    print self.app_menu_items_
 
   def user_state_cb(self, msg):
     if self.run_:
