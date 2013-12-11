@@ -177,6 +177,17 @@ class WallframeAppManager():
   def launch_app(self, app_name):
     print self.apps_
     print "request app name ", app_name
+    launch_name = self.apps_[app_name].launch_name_
+    launch_package = self.apps[app_name].package_
+    launch_args = ['roslaunch', launch_package, launch_name]
+
+    p = subprocess.Popen(launch_args)
+    (stdoutdata, stderrdata) = p.communicate()
+    self.active_app_launchers_[app_name] = p
+    self.apps_[app_name].active_ = True
+
+    rospy.logwarn("Launching " + app_name)
+    rospy.set_param("/wallframe/core/apps/running/" + app_name, [self.apps_[app_name]])
 
   # def launch_app(self,app_name):
   #   if app_name in self.apps_in_manifest_:
