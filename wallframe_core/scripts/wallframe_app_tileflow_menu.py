@@ -139,10 +139,10 @@ class AppMenu(QWidget):
     else:
       rospy.logerr("WallframeAppMenu: parameter [cursor_path_alt] not found on server")
     ### Background Image ###
-    if rospy.has_param("/wallframe/menu/params/background_path"):
-      self.background_path_ = rospy.get_param("/wallframe/menu/params/background_path")
-    else:
-      rospy.logerr("WallframeAppMenu: parameter [background_path] not found on server")
+    #if rospy.has_param("/wallframe/menu/params/background_path"):
+    #  self.background_path_ = rospy.get_param("/wallframe/menu/params/background_path")
+    #else:
+    #  rospy.logerr("WallframeAppMenu: parameter [background_path] not found on server")
     ### Application Locations ###
     if rospy.has_param("/wallframe/core/available_apps"):
       self.app_paths_ = rospy.get_param("/wallframe/core/available_apps")
@@ -195,13 +195,13 @@ class AppMenu(QWidget):
     self.setLayout(self.box_layout_)
     # self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
-    self.background_ = QLabel(self)
-    self.background_.show()
-    self.background_.move(0,0)
-    self.background_.resize(self.width_,self.height_)
-    self.background_.setScaledContents(True)
-    self.background_.setAutoFillBackground(True)
-    self.background_.setPixmap(self.background_path_)
+#    self.background_ = QLabel(self)
+#    self.background_.show()
+#    self.background_.move(0,0)
+#    self.background_.resize(self.width_,self.height_)
+#    self.background_.setScaledContents(True)
+#    self.background_.setAutoFillBackground(True)
+#    self.background_.setPixmap(self.background_path_)
 
     # Init TileflowWidget
     self.initTileflow()
