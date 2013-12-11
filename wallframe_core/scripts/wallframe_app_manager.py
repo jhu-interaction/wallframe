@@ -114,7 +114,7 @@ class WallframeAppManager():
 
   def close_app_service(self,req):
     message = "WallframeAppManager: Service Call to CLOSE APP ["+req.app_name+"]"
-    app_full_name = "wallframe_app_"+req.app_name
+    app_full_name = "modulair_app_"+req.app_name
     if app_full_name in self.active_app_launchers_.keys():
       rospy.logwarn(message + "SUCCESS")
       self.shutdown_app(req.app_name)
@@ -160,7 +160,7 @@ class WallframeAppManager():
     self.active_app_launchers_.clear()
 
   def shutdown_app(self,app_name):
-    full_app_name = "wallframe_app_" + app_name
+    full_app_name = "modulair_app_" + app_name
     app_process  = self.active_app_launchers_[full_app_name]
     app_process.terminate()
     while app_process.poll() == None:
@@ -172,7 +172,7 @@ class WallframeAppManager():
 
   def launch_app(self,app_name):
     if app_name in self.apps_in_manifest_:
-      full_app_name = "wallframe_app_" + app_name
+      full_app_name = "modulair_app_" + app_name
       message = "AdjutantLauncher: Launching [" + full_app_name + "] ..."
 
       if full_app_name not in self.apps_.keys():
@@ -252,7 +252,7 @@ class WallframeAppManager():
     for e in manifest_elements:
       if e != '': # blank line check
         if '#' not in e: # commented line check
-          app = e[len('wallframe_app_'):] # strip off wallframe prefix
+          app = e[len('modulair_app_'):] # strip off wallframe prefix
           print "-- " + app
           self.apps_in_manifest_.append(app)
 
