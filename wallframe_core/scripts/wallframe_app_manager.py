@@ -207,16 +207,16 @@ class WallframeAppManager():
     available_app_list = {}
 
     for app_full_path in self.find_files(self.app_path_, '*.launch'):
-      print app_full_path
+      # print app_full_path
       split_path = app_full_path.split("/")
-      print split_path
+      # print split_path
       appSubstring = "_app_"
       #if 'wallframe_app' in split_path[len(split_path)-1]:
       if appSubstring in split_path[len(split_path)-1]:
         app_launch_file = split_path[len(split_path)-1]
         app_launch_name = app_launch_file[:len(app_launch_file)-len('.launch')]
         app_short_name = app_launch_name[app_launch_name.find("_app_")+ len(appSubstring) - 1:]
-        app_short_name = app_launch_name[len('wallframe_app_'):]
+        app_short_name = app_launch_name[(len('wallframe_app_')-1):]
         if split_path[len(split_path)-2] == 'launch':
           app_launch_package = split_path[len(split_path)-3]
         else:
@@ -254,7 +254,7 @@ class WallframeAppManager():
         if '#' not in e: # commented line check
           app = e[len('wallframe_app_'):] # strip off wallframe prefix
           print "-- " + app
-          self.apps_in_manifest_.append(app)
+          self.apps_in_manifest_  .append(app)
 
   def find_files(self, directory, pattern):
     for root, dirs, files in os.walk(directory):

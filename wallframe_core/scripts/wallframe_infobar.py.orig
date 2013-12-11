@@ -61,35 +61,6 @@ import wallframe_core
 from wallframe_core.srv import *
 
 ################################################################################
-class WallframeToolTip(QWidget): 
-  def __init__(self,parent,parent_width,parent_height):
-    super(WallframeToolTip,self).__init__()
-    self.parent_height_ = parent_height
-    self.parent_width_ = parent_width
-    # self.state_ = 'IDLE'
-    # self.mode_ = 'MINIMIZED'
-    self.parent_ = parent
-    if rospy.has_param("/wallframe/menu/params/workspace_size"):
-      self.workspace_limits = rospy.get_param("/wallframe/menu/params/workspace_size")
-    else:
-      self.rospy.logerr("WallframeToolTip: parameter [workspace_size] not found on server")
-
-    self.height_ = int(self.parent_height_ * 3)
-    self.width_ = int(self.parent_width_ * 0.05)
-    self.y_ = int(self.parent_.wall_height_ - self.parent_height_ * 3)
-    self.x_ratio = abs(self.workspace_limits[0] - self.workspace_limits[1]) // self.width_ - 3#MURICA
-    self.y_ratio = abs(self.workspace_limits[2] - self.workspace_limits[3]) // self.height_ + 2
-    self.setStyleSheet("background-color:#000fff;color:#222222")
-    self.setWindowFlags(QtCore.Qt.FramelessWindowHint )
-    # the tool tip always stays on top
-    self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
-    self.show()   
-    #self.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.SmoothPixmapTransform)
-    self.setAutoFillBackground(True)
-    self.move(int(self.parent_width_/2.0),self.y_)
-    self.resize(self.width_/2, self.height_/2)  
-
-
 class UserTag(QWidget):
   def __init__(self,uid,parent,parent_width,parent_height):
     super(UserTag,self).__init__()
@@ -109,9 +80,6 @@ class UserTag(QWidget):
     }
     self.joint_labels_ = {}
     self.create_joint_labels()
-
-    # self.user_id_label = QLabel(str(uid), self)
-    # self.user_id_label.resize(200, 200)
 
     if rospy.has_param("/wallframe/menu/params/workspace_size"):
       self.workspace_limits = rospy.get_param("/wallframe/menu/params/workspace_size")
@@ -180,11 +148,6 @@ class UserTag(QWidget):
     x_anchor = x_cord - x_torso + (self.width_ // 2)
     label.move(x_anchor, y_cord)
     label.show()
-
-    # if jid > self.joints_['head']:
-      # self.user_id_label.move(x_anchor, y_cord)
-      # self.user_id_label.show()
-
     pass
 
 ################################################################################
@@ -371,7 +334,6 @@ if __name__ == '__main__':
   rospy.init_node('wallframe_infobar',anonymous=True)
   app = QApplication(sys.argv)
   infobar = WallframeInfobar(app)
-  toolTip = WallframeToolTip(infobar,infobar.width_,infobar.height_)
   # Running
   app.exec_()
   # Done
