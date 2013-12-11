@@ -178,17 +178,15 @@ class WallframeAppManager():
     rospy.logwarn("WallframeAppManager: App [" + app_name + "] shutdown successfully")
 
   def launch_app(self, app_name):
-    print self.apps_
-    print "request app name ", app_name
     if app_name not in self.apps_.keys():
       rospy.logerr("App: " + app_name + " not found!")
-      return false
+      return False
     launch_name = self.apps_[app_name].launch_name_
     launch_package = self.apps_[app_name].package_
     launch_args = ['roslaunch', launch_package, launch_name]
 
     process = subprocess.Popen(launch_args)
-    (stdoutdata, stderrdata) = process.communicate()
+    # (stdoutdata, stde\r\rdata) = p\rocess.communicate()
     self.active_app_launchers_[app_name] = process
 
     self.apps_[app_name].active_ = True
