@@ -34,7 +34,8 @@
 #####################################################################
 
 ###
-# Author: Kelleher Guerin, futureneer@gmail.com, Johns Hopkins University
+# Authors: Yifan Ge, Kelleher Guerin, Vineeta Khatuja
+# Johns Hopkins University
 ###
 
 import roslib; roslib.load_manifest('wallframe_core')
@@ -60,6 +61,8 @@ import wallframe_core
 import ConfigParser
 from wallframe_core.srv import *
 
+# currently we are using only lauch name , package name and active member
+# variables TODO clean up
 class AppLaunchFile():
   def __init__(self,name,launch_name,pack,launch_path,package_path,active):
     self.launch_file_path_ = launch_path
@@ -72,7 +75,7 @@ class AppLaunchFile():
 class WallframeAppManager():
   def __init__(self):
     # Member variables
-    self.apps_in_manifest_ = []
+    # this hash contains the appname as key and the launch file object as value
     self.apps_ = {}
     self.active_app_launchers_ = {}
     # Roslaunch
@@ -80,13 +83,11 @@ class WallframeAppManager():
     # ROS Init
     rospy.init_node('wallframe_app_manager',anonymous=True)
     # ROS Subscribers
-    self.wallframe_event_sub = rospy.Subscriber("/wallframe/events", String, self.wallframe_event_cb)
+#    self.wallframe_event_sub = rospy.Subscriber("/wallframe/events", String, self.wallframe_event_cb)
 
     # Config parser
     self.config_parser_ = ConfigParser.RawConfigParser()
     # Load Apps
-    # self.load_application_manifest()
-    # self.load_applications()
     self.load_application_configs()
 
     # ROS Services
@@ -139,19 +140,11 @@ class WallframeAppManager():
       return "CLOSE ALL APPS -- SUCCESS"
     pass
 
-  def wallframe_event_cb(self):
-    pass
 
   def clean_up(self):
-    for app_id,app in self.apps_.items():
-      if rospy.has_param("/wallframe/core/available_app/" + app_id):
-        rospy.delete_param("/wallframe/core/available_apps/" + app_id)
-        print("App parameters for [" + app_id + "] cleaned up")
-
-      if rospy.has_param("/wallframe/core/available_apps"):
-        rospy.delete_param("/wallframe/core/available_apps")
-        print("Remaining parameters cleaned up")
-    pass
+    if rospy.has_param("/wallframe/core/available_apps"):
+      rospy.delete_param("/wallframe/core/available_apps")
+      print("Remaining parameters cleaned up")
 
   def shutdown_all_apps(self):
     for app_name, app_process in self.active_app_launchers_.items():
@@ -179,7 +172,7 @@ class WallframeAppManager():
 
   def launch_app(self, app_name):
     if app_name not in self.apps_.keys():
-      rospy.logerr("App: " + app_name + " not found!")
+      rospy.logerr("AppManager App: " + app_name + " not found!")
       return False
     launch_name = self.apps_[app_name].launch_name_
     launch_package = self.apps_[app_name].package_
@@ -196,34 +189,10 @@ class WallframeAppManager():
     rospy.set_param("/wallframe/core/apps/running/" + app_name, {})
     return True
 
-  # def launch_app(self,app_name):
-  #   if app_name in self.apps_in_manifest_:
-  #     full_app_name = "wallframe_app_" + app_name
-  #     message = "AdjutantLauncher: Launching [" + full_app_name + "] ..."
-
-  #     if full_app_name not in self.apps_.keys():
-  #       rospy.logerr(message + " FAILED! File [" + full_app_name + "] not found in path")
-  #       return False
-  #     else:
-  #       app_name = self.apps_[full_app_name].name_
-  #       launch_name = self.apps_[full_app_name].launch_name_
-  #       launch_package = self.apps_[full_app_name].package_
-  #       launch_args = ['roslaunch', launch_package, launch_name]
-
-  #       P = subprocess.Popen(launch_args)
-  #       # (stdoutdata, stderrdata) = P.communicate()
-  #       self.active_app_launchers_[full_app_name] = P
-  #       success = True
-  #       self.apps_[full_app_name].active_ = True
-
-  #       rospy.logwarn(message + " SUCCESS! File [" + launch_name + "]")
-  #       rospy.set_param("/wallframe/core/apps/running/" + app_name, [self.apps_[full_app_name]])
-  #       return True
-
-  #   else:
-  #     rospy.logerr("WallframeAppManager: Requested app [" + app_name + "] not found in manifest.")
-
+  # find which apps have the menu.cfg file and add the app to the
+  # available_apps rosparam
   def load_application_configs(self):
+    # find the wallframe_apps directory path using the rosparam
     if rospy.has_param('/wallframe/core/paths/application_path'):
       self.app_path_ = rospy.get_param('/wallframe/core/paths/application_path')
     else:
@@ -251,65 +220,7 @@ class WallframeAppManager():
 
     rospy.set_param("/wallframe/core/available_apps", available_app_list)
 
-  def load_applications(self):
-    if rospy.has_param('/wallframe/core/paths/application_path'):
-      self.app_path_ = rospy.get_param('/wallframe/core/paths/application_path')
-    else:
-      rospy.logerr("WallframeAppManager: application path not found on parameter server")
-    rospy.logwarn("WallframeAppManager: Loading Applications from [" + self.app_path_ + "]")
-
-    available_app_list = {}
-
-    for app_full_path in self.find_files(self.app_path_, '*.launch'):
-      print app_full_path
-      split_path = app_full_path.split("/")
-      print split_path
-      appSubstring = "_app_"
-      #if 'wallframe_app' in split_path[len(split_path)-1]:
-      if appSubstring in split_path[len(split_path)-1]:
-        app_launch_file = split_path[len(split_path)-1]
-        app_launch_name = app_launch_file[:len(app_launch_file)-len('.launch')]
-        app_short_name = app_launch_name[app_launch_name.find("_app_")+ len(appSubstring):]
-        # app_short_name = app_launch_name[len('wallframe_app_'):]
-        if split_path[len(split_path)-2] == 'launch':
-          app_launch_package = split_path[len(split_path)-3]
-        else:
-          app_launch_package = split_path[len(split_path)-2]
-
-        full_path_split = app_full_path.split('/')
-        if full_path_split[len(full_path_split)-2] == 'launch':
-          app_package_path = '/'.join(full_path_split[:len(full_path_split)-2])
-        else:
-          app_package_path = '/'.join(full_path_split[:len(full_path_split)-1])
-
-        available_app_list[app_short_name] = app_package_path
-        rospy.set_param("/wallframe/core/available_app/" + app_launch_name, app_package_path)
-
-
-        A = AppLaunchFile(app_launch_name,app_launch_file,app_launch_package,app_full_path,app_package_path,False)
-        self.apps_[app_launch_name] = A
-
-        rospy.loginfo("WallframeAppManager: Found [" + app_launch_name + "]  in package  [" + app_launch_package + "]")
-
-    rospy.set_param("/wallframe/core/available_apps", available_app_list)
-
-    pass
-
-  def load_application_manifest(self):
-    if rospy.has_param('/wallframe/core/paths/app_manifest'):
-      self.app_manifest_ = rospy.get_param('/wallframe/core/paths/app_manifest')
-    else:
-      rospy.logerr("WallframeAppManager: application manifest not found on parameter server")
-    rospy.logwarn("WallframeAppManager: Loading Manifest")
-    print("Applications found in app_manifest:")
-    manifest_elements = self.app_manifest_.split("\n")
-    for e in manifest_elements:
-      if e != '': # blank line check
-        if '#' not in e: # commented line check
-          app = e[len('wallframe_app_'):] # strip off wallframe prefix
-          print "-- " + app
-          self.apps_in_manifest_.append(app)
-
+  #this function returns a generator of absolute file paths of the given file name
   def find_files(self, directory, pattern):
     for root, dirs, files in os.walk(directory):
         for basename in files:
