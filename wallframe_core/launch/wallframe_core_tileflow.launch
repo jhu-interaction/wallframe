@@ -2,7 +2,7 @@
 
   <group ns="/wallframe/core">
     <!-- Application Manageeer processes, no visual output - only service call interface -->
-    <node pkg="wallframe_core" name="wallframe_app_manager_new" type="wallframe_app_manager_new.py" output="screen"/>
+    <node pkg="wallframe_core" name="wallframe_app_manager" type="wallframe_app_manager_new.py" output="screen"/>
     <arg name="app_manifest_path" default="$(find wallframe_core)/wallframe_application_manifest.yaml" />
     <param name="paths/app_manifest" textfile="$(arg app_manifest_path)" />
     <param name="paths/application_path" value="/home/kel/jhu-interaction/wallframe_apps" /> 
@@ -13,7 +13,7 @@
   <param name="/wallframe/menu/params/cursor_path" value="$(find wallframe_core)/assets/cursor_open.png" /> 
   <param name="/wallframe/menu/params/cursor_path_alt" value="$(find wallframe_core)/assets/cursor_closed.png" /> 
   <param name="/wallframe/menu/params/background_path" value="$(find wallframe_core)/assets/background.jpg" /> 
-  <node pkg="wallframe_core" name="wallframe_app_menu" type="wallframe_app_menu.py" output="screen"/>
+  <node pkg="wallframe_core" name="wallframe_app_tileflow_menu" type="wallframe_app_tileflow_menu.py" output="screen"/>
   
   <rosparam>
     wallframe:

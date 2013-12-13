@@ -59,61 +59,13 @@ from PySide import QtCore
 from wallframe_msgs.msg import WallframeUser
 from wallframe_msgs.msg import WallframeUserArray
 from wallframe_msgs.msg import WallframeUserEvent
+from wallframe_extra.msg import WallframeMouseState
 # srv
 import wallframe_core
 from wallframe_core.srv import *
+from tileflow import TileflowWidget
 
-
-class WallframeCursor(QWidget):
-  def __init__(self,image,image_alt,parent):
-    super(WallframeCursor,self).__init__(parent)
-
-    self.h_ = rospy.get_param("/wallframe/core/params/cursor_height", 350)
-    self.w_ = rospy.get_param("/wallframe/core/params/cursor_width", 350)
-
-    self.show()
-    self.resize(self.w_,self.h_)
-    self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-    self.setStyleSheet("background:transparent;")
-    self.label_ = QLabel(self)
-    self.label_alt_ = QLabel(self)
-
-    self.label_.setPixmap(image)
-    self.label_.show()
-    self.label_.setAutoFillBackground(True)
-    self.label_.setScaledContents(True)
-    self.label_.setFixedSize(self.w_,self.h_)
-    self.label_.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-    self.label_.setStyleSheet("background:transparent;")
-    self.label_.move(0,0)
-
-    self.label_alt_.setPixmap(image_alt)
-    self.label_alt_.show()
-    self.label_alt_.setAutoFillBackground(True)
-    self.label_alt_.setScaledContents(True)
-    self.label_alt_.setFixedSize(self.w_,self.h_)
-    self.label_alt_.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-    self.label_alt_.setStyleSheet("background:transparent;")
-    self.label_alt_.move(0,0)
-    self.label_alt_.hide()
-
-  def click(self):
-    print "click"
-    self.label_.hide()
-    self.label_alt_.show()
-    self.update()
-    QTimer.singleShot(250, self.reset)
-
-  def reset(self):
-    self.label_.show()
-    self.label_alt_.hide()
-    self.update()
-
-  def set_position(self,pos):
-    self.move(pos[0]-self.w_/2, pos[1]-self.h_/2)
-    pass
-
-class ModularMenu(QWidget):
+class AppMenu(QWidget):
   signal_hide_ = QtCore.Signal()
   signal_show_ = QtCore.Signal()
   signal_click_ = QtCore.Signal()
@@ -127,12 +79,13 @@ class ModularMenu(QWidget):
     self.users_ = {}             # dict: (wallframe_id, user)
     self.num_users_ = 0          # total num of users
     self.focused_user_id_ = -1   # focused user
-    self.app_menu_items_ = {}         # dict: (app_name, qwidget)
+    self.app_menu_items_ = []         # list of the app names
     self.hidden_ = False
     self.run_ = False
+    self.mouse_state = (0, 0)
 
     # ROS
-    rospy.init_node('wallframe_app_menu', anonymous=True)
+    rospy.init_node('wallframe_app_tileflow_menu', anonymous=True)
 
     # ---- ROS subscriber ---
     self.user_state_sub_ = rospy.Subscriber("/wallframe/users/state",
@@ -142,6 +95,10 @@ class ModularMenu(QWidget):
     self.user_event_sub_ = rospy.Subscriber("/wallframe/users/events",
                                             WallframeUserEvent,
                                             self.user_event_cb)
+
+    self.mouse_state_sub = rospy.Subscriber("/wallframe/extra/mousestate",
+                                            WallframeMouseState,
+                                            self.mouse_state_cb)
     self.toast_pub_ = rospy.Publisher("/wallframe/info/toast", String)
 
     # ---- ROS get params -----
@@ -182,10 +139,10 @@ class ModularMenu(QWidget):
     else:
       rospy.logerr("WallframeAppMenu: parameter [cursor_path_alt] not found on server")
     ### Background Image ###
-    if rospy.has_param("/wallframe/menu/params/background_path"):
-      self.background_path_ = rospy.get_param("/wallframe/menu/params/background_path")
-    else:
-      rospy.logerr("WallframeAppMenu: parameter [background_path] not found on server")
+    #if rospy.has_param("/wallframe/menu/params/background_path"):
+    #  self.background_path_ = rospy.get_param("/wallframe/menu/params/background_path")
+    #else:
+    #  rospy.logerr("WallframeAppMenu: parameter [background_path] not found on server")
     ### Application Locations ###
     if rospy.has_param("/wallframe/core/available_apps"):
       self.app_paths_ = rospy.get_param("/wallframe/core/available_apps")
@@ -230,37 +187,40 @@ class ModularMenu(QWidget):
     self.grid_set_up_ = False
     self.setup_grid()
     self.setWindowTitle("Wallframe Main Menu")
-    self.gridLayout_ = QGridLayout()
+    self.box_layout_ = QHBoxLayout()
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
     self.show()
     self.resize(self.width_, self.height_)
     self.move(self.x_,self.y_)
-    self.setLayout(self.gridLayout_)
+    self.setLayout(self.box_layout_)
     # self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
-    self.background_ = QLabel(self)
-    self.background_.show()
-    self.background_.move(0,0)
-    self.background_.resize(self.width_,self.height_)
-    self.background_.setScaledContents(True)
-    self.background_.setAutoFillBackground(True)
-    self.background_.setPixmap(self.background_path_)
+#    self.background_ = QLabel(self)
+#    self.background_.show()
+#    self.background_.move(0,0)
+#    self.background_.resize(self.width_,self.height_)
+#    self.background_.setScaledContents(True)
+#    self.background_.setAutoFillBackground(True)
+#    self.background_.setPixmap(self.background_path_)
 
+    # Init TileflowWidget
+    self.initTileflow()
     # Create App Widgets
-    self.assignWidgets() # create widget
+    # self.assignWidgets() # create widget
     # Timers
     self.ok_timer_ = QtCore.QTimer()
     self.connect(self.ok_timer_, QtCore.SIGNAL("timeout()"), self.check_ok)
     self.ok_timer_.start(15)
     # Cursor
-    self.cursor_ = WallframeCursor(self.cursor_path_,self.cursor_path_alt_,self)
-    self.cursor_.set_position([self.width_/2,self.height_/2])
-    self.cursor_.show()
+    # self.cursor_ = WallframeCursor(self.cursor_path_,self.cursor_path_alt_,self)
+    # self.cursor_.set_position([self.width_/2,self.height_/2])
+    # self.cursor_.show()
     self.run_ = True
     # Hide and Show Connections
     self.signal_show_.connect(self.show_menu)
     self.signal_hide_.connect(self.hide_menu)
-    self.signal_click_.connect(self.cursor_.click)
+    #XXX: cursor click!
+    self.signal_click_.connect(self.click)
 
   def check_ok(self):
     if rospy.is_shutdown():
@@ -278,19 +238,19 @@ class ModularMenu(QWidget):
     self.cur_ind_y_ = 0
     self.grid_set_up_ = True
 
-  def next_pos(self):
-    # check if grid ind has been set
-    if not self.grid_set_up_:
-      self.setup_grid()
-    ind_x = self.cur_ind_x_
-    ind_y = self.cur_ind_y_
-    # change line if necessary
-    self.cur_ind_y_ += 1
-    if self.cur_ind_y_ == self.max_y_:
-      self.cur_ind_y_ = 0
-      self.cur_ind_x_ += 1
-    # return current grid index
-    return ind_x, ind_y
+  # def next_pos(self):
+  #   # check if grid ind has been set
+  #   if not self.grid_set_up_:
+  #     self.setup_grid()
+  #   ind_x = self.cur_ind_x_
+  #   ind_y = self.cur_ind_y_
+  #   # change line if necessary
+  #   self.cur_ind_y_ += 1
+  #   if self.cur_ind_y_ == self.max_y_:
+  #     self.cur_ind_y_ = 0
+  #     self.cur_ind_x_ += 1
+  #   # return current grid index
+  #   return ind_x, ind_y
 
   def convert_workspace(self,user_pos):
     screen_pos = []
@@ -318,27 +278,13 @@ class ModularMenu(QWidget):
     return screen_pos
     pass
 
-  def assignWidgets(self):
-    self.app_menu_items_.clear()
-    num_apps = len(self.app_paths_.items())
-    grid_cols = (num_apps > self.max_y_) and self.max_y_ or num_apps
-    grid_rows = num_apps / self.max_y_ + 1
-    for app, app_path in self.app_paths_.items():
-      label = QLabel(app,self)
-      label.show()
-      image = app_path + '/menu_icon.png'
-      rospy.logwarn('WallframeMenu:  Adding button for '+app+" app.")
-      label.setPixmap(image)
-      label.setAutoFillBackground(True)
-      label.setScaledContents(True)
-      label_width = min(self.width_ / float(grid_cols), self.height_ / float(grid_rows)) - self.border_
-      label.setFixedSize(label_width, label_width)
-      # label.setFixedSize((self.width_/(16.0/4.0))-self.border_, (self.height_/(9.0/4.0))-self.border_)
-      label.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-      label.setStyleSheet("background:transparent;")
-      nextx, nexty = self.next_pos()
-      self.gridLayout_.addWidget(label, nextx, nexty )
-      self.app_menu_items_[app] = label
+
+  def initTileflow(self):
+    res_list = [item[1] + '/menu_icon.png' for item in self.app_paths_.items()]
+    self.tileflowWidget_ = TileflowWidget(self, res_list)
+    self.box_layout_.addWidget(self.tileflowWidget_)
+    self.app_menu_items_ = [item[0] for item in self.app_paths_.items()]
+    print self.app_menu_items_
 
   def user_state_cb(self, msg):
     if self.run_:
@@ -350,7 +296,11 @@ class ModularMenu(QWidget):
         if user.focused == True:
           self.focused_user_id_ = user.wallframe_id
         self.users_[user.wallframe_id] = user
-    pass
+
+  def mouse_state_cb(self, msg):
+    if self.run_:
+      print "mouse_state: ", msg.x, msg.y
+      self.mouse_state = (msg.x, msg.y)
 
   def user_event_cb(self, msg):
     if self.run_:
@@ -366,15 +316,16 @@ class ModularMenu(QWidget):
                                                      wallframe_core.srv.close_all_apps)
               ret_success = self.srv_close_all_apps('none')
               # If close all apps is successful, hide menu and run default app
-              self.signal_hide_.emit()
-              rospy.wait_for_service('wallframe/core/app_manager/load_app')
-              try:
-                self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
-                                                       wallframe_core.srv.load_app)
-                ret_success = self.srv_load_app(self.default_app_name_)
-                self.toast_pub_.publish(String('Screensaver Running'))
-              except rospy.ServiceException, e:
-                rospy.logerr("Service call failed: %s" % e)
+              self.load_app(self.default_app_name_)
+              # self.signal_hide_.emit()
+              # rospy.wait_for_service('wallframe/core/app_manager/load_app')
+              # try:
+              #   self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
+              #                                          wallframe_core.srv.load_app)
+              #   ret_success = self.srv_load_app(self.default_app_name_)
+              #   self.toast_pub_.publish(String('Screensaver Running'))
+              # except rospy.ServiceException, e:
+              #   rospy.logerr("Service call failed: %s" % e)
             except rospy.ServiceException, e:
               rospy.logerr("Service call failed: %s" % e)
         else:
@@ -409,26 +360,32 @@ class ModularMenu(QWidget):
           except rospy.ServiceException, e:
             rospy.logerr("Service call failed: %s" % e)
         # Click to start app
-        if all( [ msg.message == 'left_elbow_click',
-                  self.current_app_name_ != "NONE"] ):
+        if msg.message == 'left_elbow_click':
+          print "captured left_elbow_click"
           self.signal_click_.emit()
           if self.hidden_ == False:
             print msg.message
             rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
-            self.toast_pub_.publish(String('Loading App ' + self.current_app_name_))
-            rospy.wait_for_service('wallframe/core/app_manager/load_app')
-            try:
-              self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
-                                                     wallframe_core.srv.load_app)
-              ret_success = self.srv_load_app(self.current_app_name_)
-              print ret_success
-              self.signal_hide_.emit()
-              self.toast_pub_.publish(String(self.current_app_name_ + ' Running'))
-            except rospy.ServiceException, e:
-              rospy.logerr("Service call failed: %s" % e)
-        elif all( [ msg.message == 'left_elbow_click',
-                  self.current_app_name_ == "NONE"] ):
-          self.signal_click_.emit()
+            self.tileflowWidget_.click()
+
+
+  def clicked_on(self, ind):
+    current_app_name = self.app_menu_items_[ind]
+    print "clicked on " + current_app_name
+    self.load_app(current_app_name)
+
+  def load_app(self, app_name):
+    self.toast_pub_.publish(String('Loading App ' + app_name))
+    self.signal_hide_.emit()
+    rospy.wait_for_service('wallframe/core/app_manager/load_app')
+    try:
+      self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
+                                             wallframe_core.srv.load_app)
+      ret_success = self.srv_load_app(app_name)
+      print ret_success
+      self.toast_pub_.publish(String(app_name + " running"))
+    except rospy.ServiceException, e:
+      rospy.logerr("Service call failed: %s" % e)
 
   def hide_menu(self):
     self.hide()
@@ -444,18 +401,37 @@ class ModularMenu(QWidget):
     rospy.logwarn("WallframeMenu: setting to visible")
     pass
 
+  def get_cursor_position_sensor(self):
+    pos = self.users_[self.focused_user_id_].translations_mm[8]
+    return (pos.x, pos.y)
+
+  def get_cursor_position_mouse(self):
+    pos = self.mouse_state
+    return self.mouse_state
+
   def update_cursor(self):
     if self.run_:
       if self.focused_user_id_ != -1:
-        cursorx = self.users_[self.focused_user_id_].translations_mm[8].x
-        cursory = self.users_[self.focused_user_id_].translations_mm[8].y
+        cursorx, cursory = self.get_cursor_position_sensor()
         cursor_position = self.convert_workspace([cursorx,cursory])
-        self.cursor_.set_position(cursor_position)
+
+        self.tileflowWidget_.update_cursor(cursor_position)
+
+      # cursorx, cursory = self.get_cursor_position()
+      # cursor_position = self.convert_workspace([cursorx,cursory])
+
+      # self.tileflowWidget_.update_cursor(cursor_position)
+
+
+        # self.cursor_.set_position(cursor_position)
+
         # Update which app is under cursor (mouse)
-        self.current_app_name_ = "NONE"
-        for appname, appwidget in self.app_menu_items_.items():
-          if appwidget.geometry().contains(cursor_position[0],cursor_position[1]):
-            self.current_app_name_ = appname
+        # self.current_app_name_ = "NONE"
+        # for appname, appwidget in self.app_menu_items_.items():
+        #   if appwidget.geometry().contains(cursor_position[0],cursor_position[1]):
+        #     self.current_app_name_ = appname
+  def click(self):
+    print "click"
 
   def run(self):
     self.show()
@@ -465,5 +441,5 @@ class ModularMenu(QWidget):
 
 ### MAIN ###
 if __name__ == "__main__":
-  menu = ModularMenu()
+  menu = AppMenu()
   menu.run()

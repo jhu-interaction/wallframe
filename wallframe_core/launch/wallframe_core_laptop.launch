@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
 
-  <group ns="/modulair/core">
+  <group ns="/wallframe/core">
     <!-- set param -->
     <arg name="app_manifest_path"
-         default="$(find modulair_core)/modulair_application_manifest.yaml" />
+         default="$(find wallframe_core)/wallframe_application_manifest.yaml" />
     <param name="paths/app_manifest" textfile="$(arg app_manifest_path)" />
-    <param name="paths/application_path" value="/home/zihan/ros/groovy/lair/modulair_core_applications" /> 
+    <param name="paths/application_path" value="$(find wallframe_apps)" /> 
+<!--<param name="paths/application_path" value="/home/vineeta/Wall13/jhu-interaction/wallframe_apps" /> --> 
 
     <!-- create app_manager node -->
-    <node pkg="modulair_core" name="modulair_app_manager"
-          type="app_manager.py" output="screen"/>
+    <node pkg="wallframe_core" name="wallframe_app_manager"
+          type="wallframe_app_manager_new.py" output="screen"/>
 
   </group>
 
@@ -18,7 +19,7 @@
   <!-- x: x offset y: y offset -->
   <!-- width/height: screen width/height -->
   <rosparam>
-    modulair:
+    wallframe:
       core:
         params:
           x: 0
