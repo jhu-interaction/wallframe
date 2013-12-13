@@ -244,7 +244,6 @@ class WallframeAppManager():
   def load_application_manifest(self):
     if rospy.has_param('/wallframe/core/paths/app_manifest'):
       self.app_manifest_ = rospy.get_param('/wallframe/core/paths/app_manifest')
-    import pdb; pdb.set_trace()  # XXX BREAKPOINT
     else:
       rospy.logerr("WallframeAppManager: application manifest not found on parameter server")
     rospy.logwarn("WallframeAppManager: Loading Manifest")
