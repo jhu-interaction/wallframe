@@ -91,7 +91,7 @@ class WallframeAppManager():
     self.load_application_configs()
 
     # ROS Services
-    print''
+
     self.load_app_srv_ = rospy.Service('app_manager/load_app', wallframe_core.srv.load_app, self.load_app_service)
     rospy.logwarn("WallframeAppManager: Service Ready [ load_app ]")
     self.close_app_srv_ = rospy.Service('app_manager/close_app', wallframe_core.srv.close_app, self.close_app_service)

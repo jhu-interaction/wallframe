@@ -261,6 +261,8 @@ class ModularMenu(QWidget):
     self.signal_show_.connect(self.show_menu)
     self.signal_hide_.connect(self.hide_menu)
     self.signal_click_.connect(self.cursor_.click)
+    self.show_tooltip("Place left hand on right elbow to click")
+
 
   def check_ok(self):
     if rospy.is_shutdown():
@@ -430,7 +432,24 @@ class ModularMenu(QWidget):
                   self.current_app_name_ == "NONE"] ):
           self.signal_click_.emit()
 
+  def show_tooltip(self, text):
+    rospy.wait_for_service('tooltip/update_text')
+    update_text_cb = rospy.ServiceProxy('tooltip/update_text', update_text)
+    try:
+        success = update_text_cb("Menu", text)
+    except rospy.ServiceException as exc:
+        rospy.logerr("WallframeTooltip: update_text service could not update the text")
+
+  def hide_tooltip_from_menu(self):
+    rospy.wait_for_service('tooltip/hide_tooltip')
+    hide_cb = rospy.ServiceProxy('tooltip/hide_tooltip', hide_tooltip)
+    try:
+        success = hide_cb("Menu")
+    except rospy.ServiceException as exc:
+        rospy.logerr("WallframeTooltip: hide service could not hide the tooltip")
+
   def hide_menu(self):
+    self.hide_tooltip_from_menu()
     self.hide()
     self.update()
     self.hidden_ = True
@@ -438,6 +457,7 @@ class ModularMenu(QWidget):
     pass
 
   def show_menu(self):
+    self.show_tooltip("Place left hand on right elbow to click")
     self.show()
     self.update()
     self.hidden_ = False

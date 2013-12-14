@@ -1,0 +1,4 @@
+string app_name
+string text
+---
+bool success
