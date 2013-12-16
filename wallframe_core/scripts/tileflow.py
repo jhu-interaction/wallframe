@@ -12,6 +12,10 @@ class TileflowWidget(QtOpenGL.QGLWidget):
     VISIBLE_TILES = 10
     DIRECTION = 1
 
+    LONG_MOVE_THRES = 0.032
+    MID_MOVE_THRES = 0.015
+    SHORT_MOVE_THRES = 0.005
+    NO_RESPONSE_DELAY = 250
 
     def __init__(self, parent, res_list=[]):
         QtOpenGL.QGLWidget.__init__(self, parent)
@@ -25,10 +29,8 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         self.tiles = []
         self.steps_in_direction = 0
         self.current_direction = 0 # -1: left 1: right 0:empty
-        self.offset = 3
-        self.mouseDown = False
-        self.responding = True
-        # self.width = 533
+        self.offset = self.target = self.target_offset = 3
+        self.state = "IDLE" # LEFT, RIGHT, LEFT_DELAY, RIGHT_DELAY
         focus_tile_timer = QtCore.QTimer(self)
         focus_tile_timer.timeout.connect(self.focus_tile)
         focus_tile_timer.start(20)
@@ -131,6 +133,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
 
     def resizeGL(self, width, height):
         self.width = width
+        self.height = height
         imagew = width * 0.45 / TileflowWidget.SCALE / 2.0
         imageh = height * 0.45 / TileflowWidget.SCALE / 2.0
 
@@ -186,18 +189,62 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         target = math.floor(offset_thres + 0.5)
         return target
 
+    def set_idle_state(self):
+        if self.state == "LEFT_DELAY" or self.state == "RIGHT_DELAY":
+            self.state = "IDLE"
+            print "IDLE"
+
+    def update_state(self, dx):
+        if (self.state == "IDLE" or self.state == "LEFT_DELAY") and dx >= self.LONG_MOVE_THRES:
+            self.state = "RIGHT"
+            self.target_offset = self.offset - 8 * dx
+
+            self.target = self.get_target(self.target_offset)
+            print "LONG RIGHT MOVE: ", 8 * dx
+            print "NEW TARGET: ", self.target
+
+        elif (self.state == "IDLE" or self.state == "RIGHT_DELAY") and -dx >= self.LONG_MOVE_THRES:
+            self.state = "LEFT"
+            self.target_offset = self.offset - 8 * dx
+            self.target = self.get_target(self.target_offset)
+            print "LONG LEFT MOVE: ", 8 * dx
+            print "NEW TARGET: ", self.target
+
+        elif self.state == "RIGHT" and dx >= self.MID_MOVE_THRES:
+            self.target_offset = self.target_offset - 6 * dx
+            self.target = self.get_target(self.target_offset)
+            print "MID RIGHT MOVE: ", 6 * dx
+            print "NEW TARGET: ", self.target
+
+        elif self.state == "LEFT" and -dx >= self.MID_MOVE_THRES:
+            self.target_offset = self.target_offset - 6 * dx
+            self.target = self.get_target(self.target_offset)
+            print "MID LEFT MOVE: ", 6 * dx
+            print "NEW TARGET: ", self.target
+
+        elif (self.state == "RIGHT" and -dx >= self.MID_MOVE_THRES):
+            if self.target > 0:
+                self.state = "LEFT_DELAY"
+                print "LEFT_DELAY"
+                QtCore.QTimer.singleShot(self.NO_RESPONSE_DELAY, self.set_idle_state)
+            else:
+                self.state = "IDLE"
+
+        elif (self.state == "LEFT" and dx >= self.MID_MOVE_THRES):
+            if self.target < len(self.res_list) - 1:
+                self.state = "RIGHT_DELAY"
+                print "RIGHT_DELAY"
+                QtCore.QTimer.singleShot(self.NO_RESPONSE_DELAY, self.set_idle_state)
+            else:
+                self.state = "IDLE"
+
+
+
     def update_cursor(self, cursor_position):
         cur_x, cur_y = cursor_position
         last_x, last_y = self.lastCursor
-        dx = cur_x - last_x
-        d = float(dx) / self.width
-        if abs(d) >= 0.01:
-        # if abs(d) >= 0.025:
-            self.current_direction = d // abs(d)
-            # offset = self.offset - 5 * d
-            offset = self.offset - 8 * d
-            self.target = self.get_target(offset)
-            print "new target: ", self.target
+        dx = float(cur_x - last_x) / self.width
+        self.update_state(dx)
         self.updateGL()
         self.lastCursor = (cur_x, cur_y)
 
