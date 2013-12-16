@@ -61,32 +61,22 @@ import wallframe_core
 import ConfigParser
 from wallframe_core.srv import *
 
-# currently we are using only lauch name , package name and active member
-# variables TODO clean up
-class AppLaunchFile():
-  def __init__(self,name,launch_name,pack,launch_path,package_path,active):
-    self.launch_file_path_ = launch_path
-    self.package_path_ = package_path
-    self.name_ = name
-    self.launch_name_ = launch_name
-    self.package_ = pack
-    self.active_ = active
 
 class WallframeAppManager():
   def __init__(self):
     # Member variables
     # this hash contains the appname as key and the launch file object as value
-    self.apps_ = {}
-    self.active_app_launchers_ = {}
+    self.apps = {}
+    self.active_app_processes = {}
     # Roslaunch
     self.roslaunch_master_ = ROSLaunch()
     # ROS Init
-    rospy.init_node('wallframe_app_manager',anonymous=True)
+    rospy.init_node('wallframe_app_manager', anonymous=True)
     # ROS Subscribers
 #    self.wallframe_event_sub = rospy.Subscriber("/wallframe/events", String, self.wallframe_event_cb)
 
     # Config parser
-    self.config_parser_ = ConfigParser.RawConfigParser()
+    self.config_parser = ConfigParser.RawConfigParser()
     # Load Apps
     self.load_application_configs()
 
@@ -120,7 +110,7 @@ class WallframeAppManager():
   def close_app_service(self,req):
     message = "WallframeAppManager: Service Call to CLOSE APP ["+req.app_name+"]"
     app_full_name = "wallframe_app_"+req.app_name
-    if app_full_name in self.active_app_launchers_.keys():
+    if app_full_name in self.active_app_processes.keys():
       rospy.logwarn(message + "SUCCESS")
       self.shutdown_app(req.app_name)
       return "CLOSE APP -- SUCCESS"
@@ -131,7 +121,7 @@ class WallframeAppManager():
 
   def close_all_apps_service(self,req):
     message = "WallframeAppManager: Service Call to CLOSE ALL APPS -- "
-    if len(self.active_app_launchers_) == 0:
+    if len(self.active_app_processes) == 0:
       rospy.logwarn(message + "FAILED -- No apps are running")
       return "CLOSE ALL APPS -- FAIL -- No apps are running"
     else:
@@ -147,46 +137,32 @@ class WallframeAppManager():
       print("Remaining parameters cleaned up")
 
   def shutdown_all_apps(self):
-    for app_name, app_process in self.active_app_launchers_.items():
-      rospy.logwarn("Killing: " + app_name)
-      app_process.terminate()
-      while app_process.poll() == None:
-        pass
-      if rospy.has_param("/wallframe/core/apps/running/" + app_name):
-        rospy.delete_param("/wallframe/core/apps/running/" + app_name)
-      self.apps_[app_name].active_ = False
-      rospy.logwarn("WallframeAppManager: App [" + app_name + "] shutdown successfully")
-    self.active_app_launchers_.clear()
+    for app_name in self.active_app_processes.keys():
+      self.shutdown_app(app_name)
 
   def shutdown_app(self, app_name):
     print "Shutting down " + app_name
-    app_process  = self.active_app_launchers_[app_name]
+    app_process  = self.active_app_processes[app_name]
     app_process.terminate()
     while app_process.poll() == None:
       pass
-    if rospy.has_param("/wallframe/core/apps/running/" + app_name):
-      rospy.delete_param("/wallframe/core/apps/running/" + app_name)
-    del self.active_app_launchers_[app_name]
-    self.apps_[app_name].active_ = False
+    del self.active_app_processes[app_name]
     rospy.logwarn("WallframeAppManager: App [" + app_name + "] shutdown successfully")
 
   def launch_app(self, app_name):
-    if app_name not in self.apps_.keys():
+    if app_name not in self.apps.keys():
       rospy.logerr("AppManager App: " + app_name + " not found!")
       return False
-    launch_name = self.apps_[app_name].launch_name_
-    launch_package = self.apps_[app_name].package_
+    launch_name = self.apps[app_name]["launch_name"]
+    launch_package = self.apps[app_name]["package_name"]
     launch_args = ['roslaunch', launch_package, launch_name]
 
     process = subprocess.Popen(launch_args)
-    # (stdoutdata, stde\r\rdata) = p\rocess.communicate()
-    self.active_app_launchers_[app_name] = process
 
-    self.apps_[app_name].active_ = True
+    self.active_app_processes[app_name] = process
+
 
     rospy.logwarn("Launching " + app_name)
-    # \rospy.set_pa\ram("/wallf\rame/co\re/apps/\running/" + app_name, self.apps_[app_name])
-    rospy.set_param("/wallframe/core/apps/running/" + app_name, {})
     return True
 
   # find which apps have the menu.cfg file and add the app to the
@@ -203,20 +179,17 @@ class WallframeAppManager():
     available_app_list = {}
     for config_full_path in self.find_files(self.app_path_, "menu.cfg"):
       print config_full_path
-      self.config_parser_.read(config_full_path)
-      app_name = self.config_parser_.get("app", "name")
-      app_launch_path = self.config_parser_.get("app", "launch")
+      self.config_parser.read(config_full_path)
+      app_name = self.config_parser.get("app", "name")
+      app_launch_path = self.config_parser.get("app", "launch")
       app_package_path = os.path.dirname(config_full_path)
       app_package_name = os.path.basename(app_package_path)
-      abs_app_launch_path = os.path.join(app_package_path, app_launch_path)
       app_launch_file_name = os.path.basename(app_launch_path)
       available_app_list[app_name] = app_package_path
 
-      # launch_file = AppLaunchFile(app_name, app_launch_file_name, app_package_name, abs_app_launch_path, app_package_path, False)
-      launch_file = AppLaunchFile(None, app_launch_file_name, app_package_name, None, None, False)
-      rospy.logwarn("Loading app: " + app_name + ": " + app_launch_file_name + " -> " + abs_app_launch_path)
+      launch_file = {"launch_name": app_launch_file_name, "package_name": app_package_name}
       rospy.logwarn("Package: " + app_package_name + " Launch: " + app_launch_file_name)
-      self.apps_[app_name] = launch_file
+      self.apps[app_name] = launch_file
 
     rospy.set_param("/wallframe/core/available_apps", available_app_list)
 
