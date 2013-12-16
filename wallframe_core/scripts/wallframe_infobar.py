@@ -61,34 +61,6 @@ import wallframe_core
 from wallframe_core.srv import *
 
 ################################################################################
-class WallframeToolTip(QWidget): 
-  def __init__(self,parent,parent_width,parent_height):
-    super(WallframeToolTip,self).__init__()
-    self.parent_height_ = parent_height
-    self.parent_width_ = parent_width
-    # self.state_ = 'IDLE'
-    # self.mode_ = 'MINIMIZED'
-    self.parent_ = parent
-    if rospy.has_param("/wallframe/menu/params/workspace_size"):
-      self.workspace_limits = rospy.get_param("/wallframe/menu/params/workspace_size")
-    else:
-      self.rospy.logerr("WallframeToolTip: parameter [workspace_size] not found on server")
-
-    self.height_ = int(self.parent_height_ * 3)
-    self.width_ = int(self.parent_width_ * 0.05)
-    self.y_ = int(self.parent_.wall_height_ - self.parent_height_ * 3)
-    self.x_ratio = abs(self.workspace_limits[0] - self.workspace_limits[1]) // self.width_ - 3#MURICA
-    self.y_ratio = abs(self.workspace_limits[2] - self.workspace_limits[3]) // self.height_ + 2
-    self.setStyleSheet("background-color:#000fff;color:#222222")
-    self.setWindowFlags(QtCore.Qt.FramelessWindowHint )
-    # the tool tip always stays on top
-    self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
-    self.show()   
-    #self.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.SmoothPixmapTransform)
-    self.setAutoFillBackground(True)
-    self.move(int(self.parent_width_/2.0),self.y_)
-    self.resize(self.width_/2, self.height_/2)  
-
 
 class UserTag(QWidget):
   def __init__(self,uid,parent,parent_width,parent_height):
@@ -102,8 +74,8 @@ class UserTag(QWidget):
 
     self.joints_ = {
     'head' : 0, 'neck' : 1, 'torso' : 2, 'right_shoulder' : 3,
-    'left_shoulder' : 4, 'right_elbow' : 5, 'left_elbow' : 6, 
-    'right_hand' : 7, 'left_hand' : 8, 'right_hip' : 9, 
+    'left_shoulder' : 4, 'right_elbow' : 5, 'left_elbow' : 6,
+    'right_hand' : 7, 'left_hand' : 8, 'right_hip' : 9,
     'left_hip' : 10, 'right_knee' : 11, 'left_knee' : 12,
     'right_foot' : 13, 'left_foot' : 14
     }
@@ -125,12 +97,12 @@ class UserTag(QWidget):
     self.y_ratio = abs(self.workspace_limits[2] - self.workspace_limits[3]) // self.height_ + 2
     self.setStyleSheet("background-color:#ffffff;color:#222222")
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-    self.show()   
+    self.show()
     #self.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.SmoothPixmapTransform)
     self.setAutoFillBackground(True)
     self.move(int(self.parent_width_/2.0),self.y_)
-    self.resize(self.width_, self.height_)  
-  
+    self.resize(self.width_, self.height_)
+
   def create_joint_labels(self):
     for name in self.joints_.keys():
       joint_label = QLabel()
@@ -191,10 +163,10 @@ class UserTag(QWidget):
 class WallframeInfobar(QWidget):
 
   toast_message_ = QtCore.Signal()
-  
+
   def __init__(self,app):
     super(WallframeInfobar,self).__init__()
-    # Member variables    
+    # Member variables
     self.app_ = app
     self.ok_timer_ = QTimer(self)
     self.current_users_ = []
@@ -277,7 +249,7 @@ class WallframeInfobar(QWidget):
     self.toast_notifier_.setText(str(message.data))
     self.toast_message_.emit()
     pass
-  
+
   @QtCore.Slot()
   def toast(self):
     # rospy.logwarn("toast call")
@@ -311,7 +283,7 @@ class WallframeInfobar(QWidget):
       self.update_tags()
 
   def clean_up(self):
-    rospy.logwarn("WallframeInfobar: Cleaning up")  
+    rospy.logwarn("WallframeInfobar: Cleaning up")
     pass
 
   def update_tag(self,uid):
@@ -319,7 +291,7 @@ class WallframeInfobar(QWidget):
     # userx = self.users_[user_id].translations_mm[joint_id].x
     userx = self.users_[uid].translations_mm[2].x
     #tag.set_pos(int(self.width_/2.0)+userx*1.5) # todo make rosparam
-    tag.update_mini_skel(int(self.width_/2.0)+userx*1.5) 
+    tag.update_mini_skel(int(self.width_/2.0)+userx*1.5)
 
     # tag.update_user(self.users_[uid])
 
@@ -350,7 +322,7 @@ class WallframeInfobar(QWidget):
       self.user_tags_[tag].hide()
       del(self.user_tags_[tag])
 
-    pass    
+    pass
 
   def user_state_cb(self,msg):
     self.current_users_ = msg.users
@@ -371,7 +343,6 @@ if __name__ == '__main__':
   rospy.init_node('wallframe_infobar',anonymous=True)
   app = QApplication(sys.argv)
   infobar = WallframeInfobar(app)
-  toolTip = WallframeToolTip(infobar,infobar.width_,infobar.height_)
   # Running
   app.exec_()
   # Done
