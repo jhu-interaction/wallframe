@@ -138,11 +138,6 @@ class AppMenu(QWidget):
       self.cursor_path_alt_ = rospy.get_param("/wallframe/menu/params/cursor_path_alt")
     else:
       rospy.logerr("WallframeAppMenu: parameter [cursor_path_alt] not found on server")
-    ### Background Image ###
-    #if rospy.has_param("/wallframe/menu/params/background_path"):
-    #  self.background_path_ = rospy.get_param("/wallframe/menu/params/background_path")
-    #else:
-    #  rospy.logerr("WallframeAppMenu: parameter [background_path] not found on server")
     ### Application Locations ###
     if rospy.has_param("/wallframe/core/available_apps"):
       self.app_paths_ = rospy.get_param("/wallframe/core/available_apps")
@@ -193,33 +188,18 @@ class AppMenu(QWidget):
     self.resize(self.width_, self.height_)
     self.move(self.x_,self.y_)
     self.setLayout(self.box_layout_)
-    # self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
-#    self.background_ = QLabel(self)
-#    self.background_.show()
-#    self.background_.move(0,0)
-#    self.background_.resize(self.width_,self.height_)
-#    self.background_.setScaledContents(True)
-#    self.background_.setAutoFillBackground(True)
-#    self.background_.setPixmap(self.background_path_)
 
     # Init TileflowWidget
-    self.initTileflow()
-    # Create App Widgets
-    # self.assignWidgets() # create widget
+    self.init_tileflow()
     # Timers
     self.ok_timer_ = QtCore.QTimer()
     self.connect(self.ok_timer_, QtCore.SIGNAL("timeout()"), self.check_ok)
     self.ok_timer_.start(15)
-    # Cursor
-    # self.cursor_ = WallframeCursor(self.cursor_path_,self.cursor_path_alt_,self)
-    # self.cursor_.set_position([self.width_/2,self.height_/2])
-    # self.cursor_.show()
     self.run_ = True
     # Hide and Show Connections
     self.signal_show_.connect(self.show_menu)
     self.signal_hide_.connect(self.hide_menu)
-    #XXX: cursor click!
     self.signal_click_.connect(self.click)
 
   def check_ok(self):
@@ -238,19 +218,6 @@ class AppMenu(QWidget):
     self.cur_ind_y_ = 0
     self.grid_set_up_ = True
 
-  # def next_pos(self):
-  #   # check if grid ind has been set
-  #   if not self.grid_set_up_:
-  #     self.setup_grid()
-  #   ind_x = self.cur_ind_x_
-  #   ind_y = self.cur_ind_y_
-  #   # change line if necessary
-  #   self.cur_ind_y_ += 1
-  #   if self.cur_ind_y_ == self.max_y_:
-  #     self.cur_ind_y_ = 0
-  #     self.cur_ind_x_ += 1
-  #   # return current grid index
-  #   return ind_x, ind_y
 
   def convert_workspace(self,user_pos):
     screen_pos = []
@@ -279,7 +246,7 @@ class AppMenu(QWidget):
     pass
 
 
-  def initTileflow(self):
+  def init_tileflow(self):
     res_list = [item[1] + '/menu_icon.png' for item in self.app_paths_.items()]
     self.tileflowWidget_ = TileflowWidget(self, res_list)
     self.box_layout_.addWidget(self.tileflowWidget_)
@@ -317,14 +284,6 @@ class AppMenu(QWidget):
               # If close all apps is successful, hide menu and run default app
               self.load_app(self.default_app_name_)
               # self.signal_hide_.emit()
-              # rospy.wait_for_service('wallframe/core/app_manager/load_app')
-              # try:
-              #   self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
-              #                                          wallframe_core.srv.load_app)
-              #   ret_success = self.srv_load_app(self.default_app_name_)
-              #   self.toast_pub_.publish(String('Screensaver Running'))
-              # except rospy.ServiceException, e:
-              #   rospy.logerr("Service call failed: %s" % e)
             except rospy.ServiceException, e:
               rospy.logerr("Service call failed: %s" % e)
         else:
@@ -422,13 +381,6 @@ class AppMenu(QWidget):
       #self.tileflowWidget_.update_cursor(cursor_position)
 
 
-        # self.cursor_.set_position(cursor_position)
-
-        # Update which app is under cursor (mouse)
-        # self.current_app_name_ = "NONE"
-        # for appname, appwidget in self.app_menu_items_.items():
-        #   if appwidget.geometry().contains(cursor_position[0],cursor_position[1]):
-        #     self.current_app_name_ = appname
   def click(self):
     print "click"
 

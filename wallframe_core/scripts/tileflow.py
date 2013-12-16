@@ -163,17 +163,6 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         GL.glCallList(self.first_tile + position)
         GL.glPopMatrix()
 
-
-    # def focus_tile(self):
-    #     if not self.mouseDown:
-    #         target = math.floor(self.offset + 0.5)
-    #         if not abs(target - self.offset) <= 0.01:
-    #             self.offset += (target - self.offset) / 3
-    #             self.updateGL()
-    #         else:
-    #           self.responding = False
-    #           QtCore.QTimer.singleShot(350, self.setResponding)
-
     def focus_tile(self):
         if not abs(self.target - self.offset) <= 0.01:
             self.offset += (self.target - self.offset) / 3
@@ -249,38 +238,8 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         self.lastCursor = (cur_x, cur_y)
 
     def click(self):
-        offset = self.offset
-        if offset <= 0:
-            offset = 0
-        if offset > len(self.res_list) - 1:
-            offset = len(self.res_list) - 1
-        mid = int(math.floor(offset + 0.5))
-        self.parent.clicked_on(mid)
+        self.parent.clicked_on(int(self.get_target(self.offset)))
 
-
-    def releaseControl(self):
-        self.mouseDown = False
-
-
-    def mousePressEvent(self, event):
-        self.lastPos = QtCore.QPoint(event.pos())
-        self.mouseDown = True
-
-    def mouseMoveEvent(self, event):
-        dx = event.x() - self.lastPos.x()
-        offset = self.offset - float(dx) * 6 / (self.width * 0.6)
-        if offset < 0:
-            self.offset = 0
-        elif offset > len(self.res_list) - 1:
-            self.offset = len(self.res_list) - 1
-        else:
-            self.offset = offset
-        self.updateGL()
-
-        self.lastPos = QtCore.QPoint(event.pos())
-
-    def mouseReleaseEvent(self, event):
-        self.mouseDown = False
 
 class Tile:
     def __init__(self, texture):
