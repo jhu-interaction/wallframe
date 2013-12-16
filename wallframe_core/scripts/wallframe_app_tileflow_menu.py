@@ -41,7 +41,7 @@
   First prototype of wallframe_app_menu. Uses Model-View/Controller approach.
   View and controller are combined because Qt signal/slots intrinsically do not cater
   to a separated view and controller.
-  @author Andy Tien, Kel Guerin, Zihan Chen
+  @author Yifan Ge, Andy Tien, Kel Guerin, Zihan Chen
 """
 # ROS import
 import roslib; roslib.load_manifest('wallframe_core')
@@ -202,6 +202,8 @@ class AppMenu(QWidget):
     self.signal_hide_.connect(self.hide_menu)
     self.signal_click_.connect(self.click)
 
+    self.show_tooltip("Place left hand on right elbow to click")
+
   def check_ok(self):
     if rospy.is_shutdown():
       self.qt_app_.exit()
@@ -345,7 +347,25 @@ class AppMenu(QWidget):
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
+  def show_tooltip(self, text):
+    rospy.wait_for_service('tooltip/update_text')
+    update_text_cb = rospy.ServiceProxy('tooltip/update_text', update_text)
+    try:
+        success = update_text_cb("Menu", text)
+    except rospy.ServiceException as exc:
+        rospy.logerr("WallframeTooltip: update_text service could not update the text")
+
+  def hide_tooltip_from_menu(self):
+    rospy.wait_for_service('tooltip/hide_tooltip')
+    hide_cb = rospy.ServiceProxy('tooltip/hide_tooltip', hide_tooltip)
+    try:
+        success = hide_cb("Menu")
+    except rospy.ServiceException as exc:
+        rospy.logerr("WallframeTooltip: hide service could not hide the tooltip")
+
+
   def hide_menu(self):
+    self.hide_tooltip_from_menu()
     self.hide()
     self.update()
     self.hidden_ = True
@@ -353,6 +373,7 @@ class AppMenu(QWidget):
     pass
 
   def show_menu(self):
+    self.show_tooltip("Place left hand on right elbow to click")
     self.show()
     self.update()
     self.hidden_ = False
