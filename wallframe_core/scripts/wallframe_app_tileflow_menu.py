@@ -299,7 +299,6 @@ class AppMenu(QWidget):
 
   def mouse_state_cb(self, msg):
     if self.run_:
-      print "mouse_state: ", msg.x, msg.y
       self.mouse_state = (msg.x, msg.y)
 
   def user_event_cb(self, msg):
@@ -411,16 +410,16 @@ class AppMenu(QWidget):
 
   def update_cursor(self):
     if self.run_:
-      if self.focused_user_id_ != -1:
-        cursorx, cursory = self.get_cursor_position_sensor()
-        cursor_position = self.convert_workspace([cursorx,cursory])
+       if self.focused_user_id_ != -1:
+         cursorx, cursory = self.get_cursor_position_sensor()
+         cursor_position = self.convert_workspace([cursorx,cursory])
 
-        self.tileflowWidget_.update_cursor(cursor_position)
+         self.tileflowWidget_.update_cursor(cursor_position)
 
-      # cursorx, cursory = self.get_cursor_position()
-      # cursor_position = self.convert_workspace([cursorx,cursory])
+      #cursorx, cursory = self.get_cursor_position_mouse()
+      #cursor_position = self.convert_workspace([cursorx,cursory])
 
-      # self.tileflowWidget_.update_cursor(cursor_position)
+      #self.tileflowWidget_.update_cursor(cursor_position)
 
 
         # self.cursor_.set_position(cursor_position)
