@@ -388,9 +388,28 @@ class AppMenu(QWidget):
     pos = self.mouse_state
     return self.mouse_state
 
+  def joint(self,user,name):
+    return user.translations_body_mm[user.frame_names.index(name)]
+  
+  # Return whether or not there is a focused user with hands in cursor position.
+  def user_has_cursor(self):
+     if self.focused_user_id_ == -1:
+       return False
+     
+     # TODO: Use constants for joints
+     user = self.users_[self.focused_user_id_]
+     hand = self.joint(user, 'left_hand')
+     hip = self.joint(user, 'left_hip')
+     torso = self.joint(user, 'torso')
+
+     midpoint = (torso.y + hip.y) / 2
+
+     return hand.y > midpoint    
+
+
   def update_cursor(self):
     if self.run_:
-       if self.focused_user_id_ != -1:
+       if self.user_has_cursor():
          cursorx, cursory = self.get_cursor_position_sensor()
          cursor_position = self.convert_workspace([cursorx,cursory])
 
