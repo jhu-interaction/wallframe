@@ -11,7 +11,7 @@
 
     <!-- create app_manager node -->
     <node pkg="wallframe_core" name="wallframe_app_manager"
-          type="wallframe_app_manager_new.py" output="screen"/>
+          type="wallframe_app_manager.py" output="screen"/>
 
   </group>
 

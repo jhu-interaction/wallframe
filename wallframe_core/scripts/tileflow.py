@@ -2,6 +2,7 @@ import math
 import sys
 from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL import GLU, GL
+import rospy
 
 
 class TileflowWidget(QtOpenGL.QGLWidget):
@@ -52,7 +53,10 @@ class TileflowWidget(QtOpenGL.QGLWidget):
 
     def initializeGL(self):
         for res_path in self.res_list:
+            rospy.logwarn("before binding" + res_path)
             self.tiles.append(Tile(self.bindTexture(QtGui.QPixmap(res_path))))
+            rospy.logwarn("after binding")
+
         self.first_tile = self.make_tiles()
 
 

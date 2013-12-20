@@ -2,7 +2,7 @@
 
   <group ns="/wallframe/core">
     <!-- Application Manageeer processes, no visual output - only service call interface -->
-    <node pkg="wallframe_core" name="wallframe_app_manager_new" type="wallframe_app_manager_new.py" output="screen"/>
+    <node pkg="wallframe_core" name="wallframe_app_manager" type="wallframe_app_manager.py" output="screen"/>
     <param name="paths/application_path" value="/home/kel/jhu-interaction/wallframe_apps" /> 
   </group>
   <!-- Infobar at the bottom of the screen that shows user avatar and messages -->
