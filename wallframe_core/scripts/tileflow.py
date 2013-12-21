@@ -50,6 +50,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         self.clearColor = color
         self.updateGL()
 
+
     def initializeGL(self):
         for icon_path in self.icon_paths:
             self.tiles.append(Tile(icon_path))
@@ -287,11 +288,9 @@ class TileflowWidget(QtOpenGL.QGLWidget):
 class Tile(object):
 
     def set_image_texture(self):
-        img_x = self.image.size[0]
-        img_y = self.image.size[1]
-        raw_image = self.image.tostring('raw', 'RGBX', 0, -1)
+        self.img_x = self.image.size[0]
+        self.img_y = self.image.size[1]
         GL.glGenTextures(1, self.texture)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture)
 
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
@@ -301,12 +300,13 @@ class Tile(object):
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_R, GL.GL_REPEAT)
 
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, 3, img_x, img_y, 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, raw_image)
+        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, 3, self.img_x, self.img_y, 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, self.raw_image)
 
     def make_commandlist(self):
         gen_list = GL.glGenLists(1)
         GL.glNewList(gen_list, GL.GL_COMPILE)
 
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture)
         GL.glBegin(GL.GL_QUADS)
         GL.glTexCoord2d(1, 0)
         GL.glVertex3d(1, -1, 0)
@@ -339,12 +339,13 @@ class Tile(object):
         return gen_list
 
     def draw(self):
-        print self.texture
+        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, 3, self.img_x, self.img_y, 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, self.raw_image)
         GL.glCallList(self.obj)
 
     def __init__(self, icon_path):
         self.icon_path = icon_path
         self.image = Image.open(icon_path)
+        self.raw_image = self.image.tostring('raw', 'RGBX', 0, -1)
         self.texture = 0
         self.set_image_texture()
         self.obj = self.make_commandlist()
