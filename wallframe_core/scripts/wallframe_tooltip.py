@@ -59,6 +59,7 @@ from wallframe_msgs.msg import TrackerUserArray as tracker_msg
 
 import wallframe_core
 from wallframe_core.srv import *
+import signal
 
 ################################################################################
 class WallframeTooltip(QWidget):
@@ -130,6 +131,7 @@ if __name__ == '__main__':
     rospy.init_node('wallframe_tooltip',anonymous=True)
     app = QApplication(sys.argv)
     tooltip = WallframeTooltip()
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     # Running
     app.exec_()
     # Done
