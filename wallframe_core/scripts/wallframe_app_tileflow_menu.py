@@ -204,7 +204,7 @@ class AppMenu(QWidget):
 #    self.background_.setPixmap(self.background_path_)
 
     # Init TileflowWidget
-    self.initTileflow()
+    self.init_tileflow()
     # Create App Widgets
     # self.assignWidgets() # create widget
     # Timers
@@ -279,9 +279,9 @@ class AppMenu(QWidget):
     pass
 
 
-  def initTileflow(self):
-    res_list = [item[1] + '/menu_icon.png' for item in self.app_paths_.items()]
-    self.tileflowWidget_ = TileflowWidget(self, res_list)
+  def init_tileflow(self):
+    icon_paths = [item[1] + '/menu_icon.bmp' for item in self.app_paths_.items()]
+    self.tileflowWidget_ = TileflowWidget(self, icon_paths)
     self.box_layout_.addWidget(self.tileflowWidget_)
     self.app_menu_items_ = [item[0] for item in self.app_paths_.items()]
     print self.app_menu_items_
