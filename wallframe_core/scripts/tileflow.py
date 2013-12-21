@@ -54,51 +54,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
     def initializeGL(self):
         for icon_path in self.icon_paths:
             self.tiles.append(Tile(icon_path))
-            #self.tiles.append(Tile(self.bindTexture(QtGui.QPixmap(res_path))))
-        #self.first_tile = self.make_tiles()
 
-
-    #def make_tiles(self):
-        #ind = list_start = GL.glGenLists(len(self.icon_paths))
-
-        #for tile in self.tiles:
-            #texture = tile.texture
-            #GL.glNewList(ind, GL.GL_COMPILE)
-            #GL.glBindTexture(GL.GL_TEXTURE_2D, tile.texture)
-
-            #GL.glBegin(GL.GL_QUADS)
-            #GL.glTexCoord2d(1, 0)
-            #GL.glVertex3d(1, -1, 0)
-            #GL.glTexCoord2d(0, 0)
-            #GL.glVertex3d(-1, -1, 0)
-            #GL.glTexCoord2d(0, 1)
-            #GL.glVertex3d(-1, 1, 0)
-            #GL.glTexCoord2d(1, 1)
-            #GL.glVertex3d(1, 1, 0)
-            #GL.glEnd()
-
-            #GL.glTranslatef(0, -2.0, 0)
-            #GL.glScalef(1, -1, 1)
-            #GL.glColor4f(1, 1, 1, 0.5)
-
-            #GL.glBegin(GL.GL_QUADS)
-            #GL.glTexCoord2d(1, 0)
-            #GL.glVertex3d(1, -1, 0)
-            #GL.glTexCoord2d(0, 0)
-            #GL.glVertex3d(-1, -1, 0)
-            #GL.glTexCoord2d(0, 1)
-            #GL.glVertex3d(-1, 1, 0)
-            #GL.glTexCoord2d(1, 1)
-            #GL.glVertex3d(1, 1, 0)
-            #GL.glEnd()
-
-            #GL.glColor4f(1, 1, 1, 1)
-
-            #GL.glEndList()
-
-            #ind += 1
-
-        #return list_start
 
     def paintGL(self):
         GL.glMatrixMode(GL.GL_MODELVIEW)
@@ -162,20 +118,10 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         GL.glTranslatef(trans, 0, 0)
         GL.glScalef(scale, scale, 1.0)
         GL.glMultMatrixf(matrix)
-        #GL.glCallList(self.first_tile + position)
         tile.draw()
         GL.glPopMatrix()
 
 
-    # def focus_tile(self):
-    #     if not self.mouseDown:
-    #         target = math.floor(self.offset + 0.5)
-    #         if not abs(target - self.offset) <= 0.01:
-    #             self.offset += (target - self.offset) / 3
-    #             self.updateGL()
-    #         else:
-    #           self.responding = False
-    #           QtCore.QTimer.singleShot(350, self.setResponding)
 
     def focus_tile(self):
         if not abs(self.target - self.offset) <= 0.01:
@@ -261,36 +207,13 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         self.parent.clicked_on(mid)
 
 
-    #def releaseControl(self):
-        #self.mouseDown = False
-
-
-    #def mousePressEvent(self, event):
-        #self.lastPos = QtCore.QPoint(event.pos())
-        #self.mouseDown = True
-
-    #def mouseMoveEvent(self, event):
-        #dx = event.x() - self.lastPos.x()
-        #offset = self.offset - float(dx) * 6 / (self.width * 0.6)
-        #if offset < 0:
-            #self.offset = 0
-        #elif offset > len(self.icon_paths) - 1:
-            #self.offset = len(self.icon_paths) - 1
-        #else:
-            #self.offset = offset
-        #self.updateGL()
-
-        #self.lastPos = QtCore.QPoint(event.pos())
-
-    #def mouseReleaseEvent(self, event):
-        #self.mouseDown = False
-
-class Tile(object):
+class Tile(QtOpenGL.QGLWidget):
 
     def set_image_texture(self):
         self.img_x = self.image.size[0]
         self.img_y = self.image.size[1]
         GL.glGenTextures(1, self.texture)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 1)
 
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
@@ -306,7 +229,6 @@ class Tile(object):
         gen_list = GL.glGenLists(1)
         GL.glNewList(gen_list, GL.GL_COMPILE)
 
-        GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture)
         GL.glBegin(GL.GL_QUADS)
         GL.glTexCoord2d(1, 0)
         GL.glVertex3d(1, -1, 0)
@@ -339,7 +261,6 @@ class Tile(object):
         return gen_list
 
     def draw(self):
-        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, 3, self.img_x, self.img_y, 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, self.raw_image)
         GL.glCallList(self.obj)
 
     def __init__(self, icon_path):
