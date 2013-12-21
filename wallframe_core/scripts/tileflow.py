@@ -16,7 +16,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
     LONG_MOVE_THRES = 0.032
     MID_MOVE_THRES = 0.015
     SHORT_MOVE_THRES = 0.005
-    NO_RESPONSE_DELAY = 250
+    NO_RESPONSE_DELAY = 10
 
     def __init__(self, parent, res_list=[]):
         QtOpenGL.QGLWidget.__init__(self, parent)
@@ -190,7 +190,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
     def update_state(self, dx):
         if (self.state == "IDLE" or self.state == "LEFT_DELAY") and dx >= self.LONG_MOVE_THRES:
             self.state = "RIGHT"
-            self.target_offset = self.offset - 8 * dx
+            self.target_offset = self.offset - 12 * dx
 
             self.target = self.get_target(self.target_offset)
             print "LONG RIGHT MOVE: ", 8 * dx
@@ -198,19 +198,19 @@ class TileflowWidget(QtOpenGL.QGLWidget):
 
         elif (self.state == "IDLE" or self.state == "RIGHT_DELAY") and -dx >= self.LONG_MOVE_THRES:
             self.state = "LEFT"
-            self.target_offset = self.offset - 8 * dx
+            self.target_offset = self.offset - 12 * dx
             self.target = self.get_target(self.target_offset)
             print "LONG LEFT MOVE: ", 8 * dx
             print "NEW TARGET: ", self.target
 
         elif self.state == "RIGHT" and dx >= self.MID_MOVE_THRES:
-            self.target_offset = self.target_offset - 6 * dx
+            self.target_offset = self.target_offset - 1 * dx
             self.target = self.get_target(self.target_offset)
             print "MID RIGHT MOVE: ", 6 * dx
             print "NEW TARGET: ", self.target
 
         elif self.state == "LEFT" and -dx >= self.MID_MOVE_THRES:
-            self.target_offset = self.target_offset - 6 * dx
+            self.target_offset = self.target_offset - 1 * dx
             self.target = self.get_target(self.target_offset)
             print "MID LEFT MOVE: ", 6 * dx
             print "NEW TARGET: ", self.target

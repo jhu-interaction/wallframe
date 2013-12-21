@@ -62,10 +62,11 @@ from wallframe_msgs.msg import WallframeUserEvent
 from wallframe_extra.msg import WallframeMouseState
 # srv
 import wallframe_core
+from wallframe_core import WallframeAppWidget
 from wallframe_core.srv import *
 from tileflow import TileflowWidget
 
-class AppMenu(QWidget):
+class AppMenu(WallframeAppWidget):
   signal_hide_ = QtCore.Signal()
   signal_show_ = QtCore.Signal()
   signal_click_ = QtCore.Signal()
@@ -388,23 +389,23 @@ class AppMenu(QWidget):
     pos = self.mouse_state
     return self.mouse_state
 
-  def joint(self,user,name):
+  def joint_position(self,user,name):
     return user.translations_body_mm[user.frame_names.index(name)]
-  
+
   # Return whether or not there is a focused user with hands in cursor position.
   def user_has_cursor(self):
      if self.focused_user_id_ == -1:
        return False
-     
-     # TODO: Use constants for joints
+
      user = self.users_[self.focused_user_id_]
-     hand = self.joint(user, 'left_hand')
-     hip = self.joint(user, 'left_hip')
-     torso = self.joint(user, 'torso')
+     right_hand = self.joint_position(user, 'left_hand')
+     left_hand = self.joint_position(user, 'right_hand')
+     head = self.joint_position(user, 'head')
+     torso = self.joint_position(user, 'torso')
 
-     midpoint = (torso.y + hip.y) / 2
+     midpoint = 0.75 * torso.y + 0.25 * head.y
 
-     return hand.y > midpoint    
+     return right_hand.y > midpoint
 
 
   def update_cursor(self):

@@ -71,7 +71,7 @@ class WallframeAppWidget(QWidget):
   def __init__(self,name, app):
     super(WallframeAppWidget,self).__init__()
 
-    # Member variables    
+    # Member variables
     self.name_ = name
     self.app_ = app
     self.ok_timer_ = QTimer(self)
@@ -86,7 +86,7 @@ class WallframeAppWidget(QWidget):
     # ROS Subscribers
     self.user_state_sub_ = rospy.Subscriber("/wallframe/users/state", WallframeUserArray, self.user_state_cb)
     self.user_event_sub_ = rospy.Subscriber("/wallframe/users/events", WallframeUserEvent, self.user_event_cb)
-    
+
     # App parameters
     if rospy.has_param("/wallframe/core/params/x"):
       self.x_ = rospy.get_param("/wallframe/core/params/x")
@@ -137,11 +137,11 @@ class WallframeAppWidget(QWidget):
       self.app_.exit()
 
   """
-  Clean up or delete things, such as ros parameters  
+  Clean up or delete things, such as ros parameters
   """
   def clean_up(self):
     rospy.logwarn(self.name_ + ": App Widget Cleaning up")
-    pass    
+    pass
 
   """
   Signal functions here that you want to run on a user state callback
