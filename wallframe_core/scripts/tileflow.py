@@ -232,7 +232,10 @@ class TileflowWidget(QtOpenGL.QGLWidget):
                 self.state = "IDLE"
 
 
-
+    def move_right(self, step):
+        pass
+    def move_left(self, step):
+        pass
     def update_cursor(self, cursor_position):
         cur_x, cur_y = cursor_position
         last_x, last_y = self.lastCursor

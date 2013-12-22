@@ -67,6 +67,11 @@ from wallframe_core.srv import *
 from tileflow import TileflowWidget
 
 class AppMenu(WallframeAppWidget):
+  Y_THRES = 0.2
+  X_LONG_THRES = 0.032
+  X_MID_THRES = 0.015
+  X_SHORT_THRES = 0.015
+
   signal_hide_ = QtCore.Signal()
   signal_show_ = QtCore.Signal()
   signal_click_ = QtCore.Signal()
@@ -209,7 +214,7 @@ class AppMenu(WallframeAppWidget):
     if rospy.is_shutdown():
       self.qt_app_.exit()
     else:
-      self.update_cursor()
+      self.update_tiles()
       pass
     pass
 
@@ -251,21 +256,33 @@ class AppMenu(WallframeAppWidget):
 
   def init_tileflow(self):
     res_list = [item[1] + '/menu_icon.png' for item in self.app_paths_.items()]
-    self.tileflowWidget_ = TileflowWidget(self, res_list)
-    self.box_layout_.addWidget(self.tileflowWidget_)
+    self.tileflow_widget = TileflowWidget(self, res_list)
+    self.box_layout_.addWidget(self.tileflow_widget)
     self.app_menu_items_ = [item[0] for item in self.app_paths_.items()]
     print self.app_menu_items_
 
   def user_state_cb(self, msg):
     if self.run_:
-      self.current_users_ = msg.users
-      self.num_users_ = len(self.current_users_)
+      if self.focused_user_id_ != -1:
+        self.prev_user = self.users_[self.focused_user_id_]
+
+      current_users_ = msg.users
+      self.num_users_ = len(current_users_)
       self.users_.clear()
       self.focused_user_id_ = -1
-      for user in self.current_users_:
+
+      for user in current_users_:
         if user.focused == True:
+          # if there is a new focused user then we need to delete the prev_user
+          # data because it is for a diff user
+          if(user.wallframe_id != self.focused_user_id_):
+            self.prev_user = None
           self.focused_user_id_ = user.wallframe_id
         self.users_[user.wallframe_id] = user
+
+      if self.focused_user_id_ != -1:
+        self.current_user = self.users_[self.focused_user_id_]
+
 
   def mouse_state_cb(self, msg):
     if self.run_:
@@ -327,7 +344,7 @@ class AppMenu(WallframeAppWidget):
           if self.hidden_ == False:
             print msg.message
             rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
-            self.tileflowWidget_.click()
+            self.tileflow_widget.click()
 
 
   def clicked_on(self, ind):
@@ -394,32 +411,97 @@ class AppMenu(WallframeAppWidget):
 
   # Return whether or not there is a focused user with hands in cursor position.
   def user_has_cursor(self):
-     if self.focused_user_id_ == -1:
-       return False
+    if self.focused_user_id_ == -1:
+      return False
+    try:
+        user = self.users_[self.focused_user_id_]
+        right_hand = self.joint_position(user, 'left_hand')
+        left_hand = self.joint_position(user, 'right_hand')
+        head = self.joint_position(user, 'head')
+        torso = self.joint_position(user, 'torso')
+        midpoint = 0.75 * torso.y + 0.25 * head.y
 
-     user = self.users_[self.focused_user_id_]
-     right_hand = self.joint_position(user, 'left_hand')
-     left_hand = self.joint_position(user, 'right_hand')
-     head = self.joint_position(user, 'head')
-     torso = self.joint_position(user, 'torso')
+        return right_hand.y > midpoint
+    # The user id does not exist in the user map
+    except IndexError as e:
+        return False
 
-     midpoint = 0.75 * torso.y + 0.25 * head.y
+  def check_gesture(self, prev_user, current_user):
+    # LONG_RIGHT_SWIPE, SHORT_RIGHT_SWIPE, LONG_LEFT_SWIPE, SHORT_LEFT_SWIPE
+    # old joint position values of the current user
+    if prev_user.wallframe_id == current_user.wallframe_id:
+      swipe_gesture = self.check_for_swipe(prev_user, current_user)
+      if swipe_gesture:
+        return swipe_gesture
+    else:
+      return None
 
-     return right_hand.y > midpoint
 
+  def check_for_right_swipe(self, prev_user, current_user):
+    dx = self.joint_position(current_user, 'left_hand').x - self.joint_position(prev_user, 'left_hand').x
+    if dx > self.X_SHORT_THRES and dx < self.X_MID_THRES:
+      return "SHORT_RIGHT_SWIPE"
+    elif dx > self.X_LONG_THRES:
+      return "LONG_RIGHT_SWIPE"
+    else:
+      return None
 
-  def update_cursor(self):
+  def check_for_left_swipe(self, prev_user, current_user):
+    dx = self.joint_position(prev_user, 'right_hand').x - self.joint_position(current_user, 'right_hand').x
+    if dx > self.X_SHORT_THRES and dx < self.X_MID_THRES:
+      return "SHORT_LEFT_SWIPE"
+    elif dx > self.X_LONG_THRES:
+      return "LONG_LEFT_SWIPE"
+    else:
+      return None
+
+  def validate_y_for_swipe(self, prev_hand_y, current_hand_y):
+    head = self.joint_position(user, 'head')
+    torso = self.joint_position(user, 'torso')
+
+    if current_hand_y >= torso.y and current_hand_y <= head.y and abs(current_hand_y - prev_hand_y) <= self.Y_THRES:
+      return True
+    else:
+      return False
+
+  def check_for_swipe(self, prev_user, current_user):
+    current_left_hand = self.joint_position(current_user, 'right_hand')
+    current_right_hand = self.joint_position(current_user, 'left_hand')
+    prev_left_hand = self.joint_position(prev_user, 'right_hand')
+    prev_right_hand = self.joint_position(prev_user, 'left_hand')
+    # TODO think about what both the two swipe gestures happen together
+    if self.validate_y_for_swipe(prev_left_hand.y, current_left_hand.y):
+      gesture = self.check_for_right_swipe(prev_user, current_user)
+      if gesture:
+        return gesture
+      else:
+        gesture = self.check_for_left_swipe(prev_user, current_user)
+        return gesture
+
+  def update_tiles(self):
     if self.run_:
-       if self.user_has_cursor():
-         cursorx, cursory = self.get_cursor_position_sensor()
-         cursor_position = self.convert_workspace([cursorx,cursory])
 
-         self.tileflowWidget_.update_cursor(cursor_position)
+      if self.prev_user and self.current_user :
+        gesture = self.check_for_swipe(self.prev_user,self.current_user)
+        if gesture == "LONG_RIGHT_SWIPE":
+          self.tileflow_widget.move_right(2)
+        elif gesture == "SHORT_RIGHT_SWIPE":
+          self.tileflow_widget.move_right(1)
+        elif gesture == "LONG_LEFT_SWIPE":
+          self.tileflow_widget.move_left(2)
+        elif gesture == "SHORT_LEFT_SWIPE":
+          self.tileflow_widget.move_left(1)
+
+
+        #cursorx, cursory = self.get_cursor_position_sensor()
+        #cursor_position = self.convert_workspace([cursorx,cursory])
+
+        #self.tileflow_widget.update_cursor(cursor_position)
 
       #cursorx, cursory = self.get_cursor_position_mouse()
       #cursor_position = self.convert_workspace([cursorx,cursory])
 
-      #self.tileflowWidget_.update_cursor(cursor_position)
+      #self.tileflow_widget.update_cursor(cursor_position)
 
 
   def click(self):
