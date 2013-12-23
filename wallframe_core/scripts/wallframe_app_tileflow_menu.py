@@ -68,7 +68,7 @@ from tileflow import TileflowWidget
 
 class AppMenu(WallframeAppWidget):
   Y_THRES = 300
-  X_LONG_THRES = 60
+  X_LONG_THRES = 80
   X_MID_THRES = 80
   X_SHORT_THRES = 30
 
