@@ -233,9 +233,11 @@ class TileflowWidget(QtOpenGL.QGLWidget):
 
 
     def move_right(self, step):
-        pass
+        self.target = self.get_target(self.offset - step)
+
     def move_left(self, step):
-        pass
+        self.target = self.get_target(self.offset + step)
+
     def update_cursor(self, cursor_position):
         cur_x, cur_y = cursor_position
         last_x, last_y = self.lastCursor

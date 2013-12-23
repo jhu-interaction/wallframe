@@ -67,10 +67,10 @@ from wallframe_core.srv import *
 from tileflow import TileflowWidget
 
 class AppMenu(WallframeAppWidget):
-  Y_THRES = 0.2
-  X_LONG_THRES = 0.032
-  X_MID_THRES = 0.015
-  X_SHORT_THRES = 0.015
+  Y_THRES = 300
+  X_LONG_THRES = 100
+  X_MID_THRES = 80
+  X_SHORT_THRES = 30
 
   signal_hide_ = QtCore.Signal()
   signal_show_ = QtCore.Signal()
@@ -89,7 +89,9 @@ class AppMenu(WallframeAppWidget):
     self.hidden_ = False
     self.run_ = False
     self.mouse_state = (0, 0)
-
+    self.prev_user = None
+    self.current_user = None
+    self.state = "IDLE" #IDLE LEFT RIGHT
     # ROS
     rospy.init_node('wallframe_app_tileflow_menu', anonymous=True)
 
@@ -269,10 +271,13 @@ class AppMenu(WallframeAppWidget):
       current_users_ = msg.users
       self.num_users_ = len(current_users_)
       self.users_.clear()
-      self.focused_user_id_ = -1
+
+      # To check if there is any focused user
+      has_focused_user = False
 
       for user in current_users_:
         if user.focused == True:
+          has_focused_user = True
           # if there is a new focused user then we need to delete the prev_user
           # data because it is for a diff user
           if(user.wallframe_id != self.focused_user_id_):
@@ -280,9 +285,11 @@ class AppMenu(WallframeAppWidget):
           self.focused_user_id_ = user.wallframe_id
         self.users_[user.wallframe_id] = user
 
-      if self.focused_user_id_ != -1:
-        self.current_user = self.users_[self.focused_user_id_]
 
+      if(not has_focused_user):
+        self.focused_user_id_ = -1
+      else:
+        self.current_user = self.users_[self.focused_user_id_]
 
   def mouse_state_cb(self, msg):
     if self.run_:
@@ -439,23 +446,38 @@ class AppMenu(WallframeAppWidget):
 
   def check_for_right_swipe(self, prev_user, current_user):
     dx = self.joint_position(current_user, 'left_hand').x - self.joint_position(prev_user, 'left_hand').x
-    if dx > self.X_SHORT_THRES and dx < self.X_MID_THRES:
-      return "SHORT_RIGHT_SWIPE"
-    elif dx > self.X_LONG_THRES:
-      return "LONG_RIGHT_SWIPE"
+
+    if self.state == "RIGHT":
+      if -dx > self.X_SHORT_THRES:
+        self.state = "IDLE"
     else:
-      return None
+      if dx > self.X_LONG_THRES:
+        self.state = "RIGHT"
+        return "LONG_RIGHT_SWIPE"
+
+      elif dx > self.X_SHORT_THRES:
+        self.state = "RIGHT"
+        return "SHORT_RIGHT_SWIPE"
+    return None
+
+
 
   def check_for_left_swipe(self, prev_user, current_user):
     dx = self.joint_position(prev_user, 'right_hand').x - self.joint_position(current_user, 'right_hand').x
-    if dx > self.X_SHORT_THRES and dx < self.X_MID_THRES:
-      return "SHORT_LEFT_SWIPE"
-    elif dx > self.X_LONG_THRES:
-      return "LONG_LEFT_SWIPE"
-    else:
-      return None
 
-  def validate_y_for_swipe(self, prev_hand_y, current_hand_y):
+    if self.state == "LEFT":
+      if -dx > self.X_SHORT_THRES:
+        self.state = "IDLE"
+    else:
+      if dx > self.X_LONG_THRES:
+        self.state = "LEFT"
+        return "LONG_LEFT_SWIPE"
+      elif dx > self.X_SHORT_THRES:
+        self.state = "LEFT"
+        return "SHORT_LEFT_SWIPE"
+    return None
+
+  def validate_y_for_swipe(self, prev_hand_y, current_hand_y,user):
     head = self.joint_position(user, 'head')
     torso = self.joint_position(user, 'torso')
 
@@ -470,19 +492,26 @@ class AppMenu(WallframeAppWidget):
     prev_left_hand = self.joint_position(prev_user, 'right_hand')
     prev_right_hand = self.joint_position(prev_user, 'left_hand')
     # TODO think about what both the two swipe gestures happen together
-    if self.validate_y_for_swipe(prev_left_hand.y, current_left_hand.y):
-      gesture = self.check_for_right_swipe(prev_user, current_user)
-      if gesture:
-        return gesture
-      else:
-        gesture = self.check_for_left_swipe(prev_user, current_user)
-        return gesture
+#    print "Difference y ", prev_left_hand.y - current_left_hand.y
+#    print "Difference x ", prev_left_hand.x - current_left_hand.x
+#    print "Absolute val y", prev_left_hand.y
+#    print "Absolute val x", prev_left_hand.x
+
+    right_gesture = None
+    left_gesture = None
+    if self.validate_y_for_swipe(prev_right_hand.y, current_right_hand.y,current_user):
+      right_gesture = self.check_for_right_swipe(prev_user, current_user)
+    if self.validate_y_for_swipe(prev_left_hand.y, current_left_hand.y,current_user):
+      left_gesture = self.check_for_left_swipe(prev_user, current_user)
+    return left_gesture or right_gesture
 
   def update_tiles(self):
     if self.run_:
 
       if self.prev_user and self.current_user :
         gesture = self.check_for_swipe(self.prev_user,self.current_user)
+        if(gesture):
+          print gesture
         if gesture == "LONG_RIGHT_SWIPE":
           self.tileflow_widget.move_right(2)
         elif gesture == "SHORT_RIGHT_SWIPE":
