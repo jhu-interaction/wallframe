@@ -88,6 +88,8 @@ class WallframeAppManager():
     rospy.logwarn("WallframeAppManager: Service Ready [ close_app ]")
     self.close_all_apps_srv_ = rospy.Service('app_manager/close_all_apps', wallframe_core.srv.close_all_apps, self.close_all_apps_service)
     rospy.logwarn("WallframeAppManager: Service Ready [ close_all_apps ]")
+    self.suspend_app_srv = rospy.Service('app_manager/suspend_app', wallframe_core.srv.suspend_app, self.suspend_app_service)
+    rospy.logwarn("WallframeAppManager: Service Ready [ suspend_app ]")
 
     # Running
     rospy.logwarn("WallframeAppManager: Started")
@@ -117,8 +119,9 @@ class WallframeAppManager():
     else:
       rospy.logwarn(message + "FAILED -- App not running")
       return "CLOSE APP -- FAIL -- App not running"
-    pass
 
+  def suspend_app_service(self, req):
+    pass
   def close_all_apps_service(self,req):
     message = "WallframeAppManager: Service Call to CLOSE ALL APPS -- "
     if len(self.active_app_processes) == 0:
@@ -128,7 +131,6 @@ class WallframeAppManager():
       self.shutdown_all_apps()
       rospy.logwarn(message + "SUCCESS")
       return "CLOSE ALL APPS -- SUCCESS"
-    pass
 
 
   def clean_up(self):
