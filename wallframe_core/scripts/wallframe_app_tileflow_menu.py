@@ -510,8 +510,6 @@ class AppMenu(WallframeAppWidget):
 
       if self.prev_user and self.current_user :
         gesture = self.check_for_swipe(self.prev_user,self.current_user)
-        if(gesture):
-          print gesture
         if gesture == "LONG_RIGHT_SWIPE":
           self.tileflow_widget.move_right(2)
         elif gesture == "SHORT_RIGHT_SWIPE":

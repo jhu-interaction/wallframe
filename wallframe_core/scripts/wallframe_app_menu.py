@@ -373,7 +373,7 @@ class ModularMenu(QWidget):
               try:
                 self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
                                                        wallframe_core.srv.load_app)
-                ret_success = self.srv_load_app(self.default_app_name_)
+                ret_success = self.srv_load_app(self.default_app_name_, True)
                 self.toast_pub_.publish(String('Screensaver Running'))
               except rospy.ServiceException, e:
                 rospy.logerr("Service call failed: %s" % e)
@@ -422,7 +422,7 @@ class ModularMenu(QWidget):
             try:
               self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
                                                      wallframe_core.srv.load_app)
-              ret_success = self.srv_load_app(self.current_app_name_)
+              ret_success = self.srv_load_app(self.current_app_name_, False)
               print ret_success
               self.signal_hide_.emit()
               self.toast_pub_.publish(String(self.current_app_name_ + ' Running'))
