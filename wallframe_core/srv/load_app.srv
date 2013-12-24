@@ -1,4 +1,4 @@
 string app_name
-boolean keep_running
+boolean default
 ---
 string success

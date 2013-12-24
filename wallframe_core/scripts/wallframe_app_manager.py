@@ -103,7 +103,7 @@ class WallframeAppManager():
 
   def load_app_service(self, req):
     message = "WallframeAppManager: Service Call to LOAD APP ["+req.app_name+"]"
-    if self.launch_app(req.app_name, req.keep_running) == True:
+    if self.launch_app(req.app_name, req.default) == True:
       return "LOAD APP -- SUCCESS"
     else:
       return "LOAD APP -- FAILED -- App not found or could not load"
@@ -120,7 +120,7 @@ class WallframeAppManager():
       return "CLOSE APP -- FAIL -- App not running"
 
   def pause_app_service(self, req):
-    message = "WalfframeAppManager: Service Call to CLOSE APP [" + req.app_name + "]"
+    message = "WallframeAppManager: Service Call to CLOSE APP [" + req.app_name + "]"
     if req.app_name in self.active_apps.keys():
       self.pause_app(req.app_name)
       return "PAUSE APP -- SUCCESS"
@@ -136,6 +136,7 @@ class WallframeAppManager():
     else:
       rospy.logwarn(message + "FGAILED -- APP not running")
       return "CONTINUE APP -- FAIL App not running"
+
   def close_all_apps_service(self,req):
     message = "WallframeAppManager: Service Call to CLOSE ALL APPS -- "
     if len(self.active_apps) == 0:
@@ -154,8 +155,11 @@ class WallframeAppManager():
 
   def shutdown_all_apps(self):
     for app_name, app in self.active_apps.keys():
-      if not app["keep_running"]:
+      if not app["default"]:
         self.shutdown_app(app_name)
+      else:
+        self.continue_app(app_name)
+        app["paused"] = False
 
   def shutdown_app(self, app_name):
     print "Shutting down " + app_name
@@ -166,25 +170,31 @@ class WallframeAppManager():
     del self.active_apps[app_name]
     rospy.logwarn("WallframeAppManager: App [" + app_name + "] shutdown successfully")
 
-  # TODO: Mark if the process is active
   def pause_app(self, app_name):
     print "Pausing " + app_name
-    app_process = self.active_apps[app_name]["process"]
-    app_process.send_signal(signal.SIGSTOP)
-    self.active_apps[app_name]["paused"] = True
-    rospy.logwarn("WallframeAppManager: App [" + app_name + "] paused successfully")
+    if not self.active_apps[app_name]["paused"]:
+      app_process = self.active_apps[app_name]["process"]
+      app_process.send_signal(signal.SIGSTOP)
+      self.active_apps[app_name]["paused"] = True
+      rospy.logwarn("WallframeAppManager: App [" + app_name + "] paused successfully")
+    else:
+      rospy.logwarn("WallframeAppManager: App [" + app_name + "] is already paused")
 
-  # TODO: Mark if the process is active
+
   def continue_app(self, app_name):
     print "Continuing " + app_name
     if self.active_apps[app_name]["paused"]:
       app_process = self.active_apps[app_name]["process"]
       app_process.send_signal(signal.SIGCONT)
       rospy.logwarn("WallframeAppManager: App [" + app_name + "] continued successfully")
+      self.active_apps[app_name]["paused"] = False
     else:
       rospy.logwarn("WallframeAppManager: App [" + app_name + "] is not paused")
 
-  def launch_app(self, app_name, keep_running=False):
+  def launch_app(self, app_name, default=False):
+    for app_name, app in self.active_apps.keys():
+      if app["default"] == True:
+        self.pause_app(app_name)
     if app_name not in self.apps.keys():
       rospy.logerr("AppManager App: " + app_name + " not found!")
       return False
@@ -194,7 +204,7 @@ class WallframeAppManager():
 
     process = subprocess.Popen(launch_args)
 
-    self.active_apps[app_name] = {"process": process, "keep_running": keep_running, "paused": False}
+    self.active_apps[app_name] = {"process": process, "default": default, "paused": False}
 
     rospy.logwarn("Launching " + app_name)
     return True
