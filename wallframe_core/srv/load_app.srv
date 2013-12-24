@@ -1,3 +1,4 @@
 string app_name
+boolean keep_running
 ---
 string success
