@@ -90,6 +90,7 @@ class AppMenu(WallframeAppWidget):
     self.run_ = False
     self.mouse_state = (0, 0)
     self.prev_user = None
+    self.current_app_name = ""
     self.current_user = None
     self.state = "IDLE" #IDLE LEFT RIGHT
     # ROS
@@ -212,6 +213,8 @@ class AppMenu(WallframeAppWidget):
 
     self.show_tooltip("Place left hand on right elbow to click")
 
+
+
   def check_ok(self):
     if rospy.is_shutdown():
       self.qt_app_.exit()
@@ -295,38 +298,33 @@ class AppMenu(WallframeAppWidget):
     if self.run_:
       self.mouse_state = (msg.x, msg.y)
 
+  def close_all_apps(self):
+    rospy.wait_for_service('wallframe/core/app_manager/close_all_apps')
+    try:
+      self.srv_close_all_apps = rospy.ServiceProxy('wallframe/core/app_manager/close_all_apps',
+                                                   wallframe_core.srv.close_all_apps)
+      ret_success = self.srv_close_all_apps('none')
+      self.toast_pub_.publish(String('Apps Closed'))
+    except rospy.ServiceException, e:
+      rospy.logerr("Service call failed: %s" % e)
+
   def user_event_cb(self, msg):
     if self.run_:
       ### Workspace Events ###
       if msg.event_id == 'workspace_event':
+
         if self.screensaver_:
-          if msg.message == 'all_users_left':
+          if msg.message == 'all_users_left' and self.current_app_name != self.default_app_name_:
             rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should start default app")
-            self.toast_pub_.publish(String('Launching Screensaver'))
-            rospy.wait_for_service('wallframe/core/app_manager/close_all_apps')
-            try:
-              self.srv_close_all_apps = rospy.ServiceProxy('wallframe/core/app_manager/close_all_apps',
-                                                     wallframe_core.srv.close_all_apps)
-              ret_success = self.srv_close_all_apps('none')
-              # If close all apps is successful, hide menu and run default app
-              self.load_app(self.default_app_name_)
-              # self.signal_hide_.emit()
-            except rospy.ServiceException, e:
-              rospy.logerr("Service call failed: %s" % e)
+            self.close_app(self.current_app_name)
+            self.load_app(self.default_app_name_, default=True)
         else:
           if msg.message == 'all_users_left':
             rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should close app and show menu")
             self.toast_pub_.publish(String('Closing Apps'))
-            rospy.wait_for_service('wallframe/core/app_manager/close_all_apps')
-            try:
-              self.srv_close_all_apps = rospy.ServiceProxy('wallframe/core/app_manager/close_all_apps',
-                                                     wallframe_core.srv.close_all_apps)
-              ret_success = self.srv_close_all_apps('none')
-              # If close all apps is successful, show menu
-              self.signal_show_.emit()
-              self.toast_pub_.publish(String('Apps Closed'))
-            except rospy.ServiceException, e:
-              rospy.logerr("Service call failed: %s" % e)
+            self.close_all_apps()
+            # If close all apps is successful, show menu
+            self.signal_show_.emit()
 
       ### User Events ###
       if msg.event_id == 'hand_event' and msg.user_id == self.focused_user_id_:
@@ -335,15 +333,9 @@ class AppMenu(WallframeAppWidget):
           rospy.logdebug("WallframeMenu: HANDS_HEAD received, should resume menu")
           self.toast_pub_.publish(String('Closing All Apps'))
           rospy.wait_for_service('wallframe/core/app_manager/close_all_apps')
-          try:
-            self.srv_close_all_apps = rospy.ServiceProxy('wallframe/core/app_manager/close_all_apps',
-                                                   wallframe_core.srv.close_all_apps)
-            ret_success = self.srv_close_all_apps('none')
-            print ret_success
-            self.signal_show_.emit()
-            self.toast_pub_.publish(String('Apps Closed'))
-          except rospy.ServiceException, e:
-            rospy.logerr("Service call failed: %s" % e)
+
+          self.close_app(self.current_app_name)
+          self.signal_show_.emit()
         # Click to start app
         if msg.message == 'left_elbow_click':
           print "captured left_elbow_click"
@@ -355,20 +347,32 @@ class AppMenu(WallframeAppWidget):
 
 
   def clicked_on(self, ind):
-    current_app_name = self.app_menu_items_[ind]
-    print "clicked on " + current_app_name
-    self.load_app(current_app_name)
+    print "clicked on " + self.app_menu_items_[ind]
+    self.load_app(self.app_menu_items_[ind])
 
-  def load_app(self, app_name):
+  def load_app(self, app_name, default=False):
     self.toast_pub_.publish(String('Loading App ' + app_name))
     self.signal_hide_.emit()
     rospy.wait_for_service('wallframe/core/app_manager/load_app')
     try:
       self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
                                              wallframe_core.srv.load_app)
-      ret_success = self.srv_load_app(app_name)
+      ret_success = self.srv_load_app(app_name, default)
       print ret_success
+      self.current_app_name = app_name
       self.toast_pub_.publish(String(app_name + " running"))
+    except rospy.ServiceException, e:
+      rospy.logerr("Service call failed: %s" % e)
+
+  def close_app(self, app_name):
+    self.toast_pub_.publish(String("Closing App " + app_name))
+    rospy.wait_for_service("wallframe/core/app_manager/close_app")
+    try:
+      self.srv_close_app = rospy.ServiceProxy('wallframe/core/app_manager/close_app',
+                                              wallframe_core.srv.close_app)
+      ret_success = self.srv_close_app(app_name)
+      self.current_app_name = ""
+      self.toast_pub_.publish(String(app_name + ' Closed'))
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 

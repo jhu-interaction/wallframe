@@ -37,7 +37,7 @@
           workspace_size: [-1200,1200,-600,600,1500,3000]
           border_scale: .02
           y_offset: -600.0
-          screensaver: no
+          screensaver: yes
   </rosparam>
 
 
