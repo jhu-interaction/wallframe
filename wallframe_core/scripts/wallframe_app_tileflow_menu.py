@@ -185,8 +185,8 @@ class AppMenu(WallframeAppWidget):
     self.height_ = int(self.height_*self.height_perc_)
 
     # Get app list
-    self.app_list_ = self.app_paths_.keys()
-    rospy.logwarn("WallframeMenu: found " + str(len(self.app_list_)) + " applications")
+    #self.app_list_ = self.app_paths_.keys()
+    #rospy.logwarn("WallframeMenu: found " + str(len(self.app_list_)) + " applications")
 
     self.grid_set_up_ = False
     self.setup_grid()
@@ -481,7 +481,7 @@ class AppMenu(WallframeAppWidget):
         return "SHORT_LEFT_SWIPE"
     return None
 
-  def validate_y_for_swipe(self, prev_hand_y, current_hand_y,user):
+  def validate_y_for_swipe(self, prev_hand_y, current_hand_y, user):
     head = self.joint_position(user, 'head')
     torso = self.joint_position(user, 'torso')
 
@@ -493,8 +493,15 @@ class AppMenu(WallframeAppWidget):
   def check_for_swipe(self, prev_user, current_user):
     current_left_hand = self.joint_position(current_user, 'right_hand')
     current_right_hand = self.joint_position(current_user, 'left_hand')
+
     prev_left_hand = self.joint_position(prev_user, 'right_hand')
     prev_right_hand = self.joint_position(prev_user, 'left_hand')
+
+    prev_left_elbow = self.joint_position(prev_user, 'right_elbow')
+    prev_right_elbow = self.joint_position(prev_user, 'left_elbow')
+
+    current_left_elbow = self.joint_position(current_user, 'right_elbow')
+    current_right_elbow = self.joint_position(current_user, 'left_elbow')
     # TODO think about what both the two swipe gestures happen together
 
     right_gesture = None
@@ -506,32 +513,27 @@ class AppMenu(WallframeAppWidget):
     #return left_gesture or right_gesture
     if self.validate_y_for_swipe(prev_right_hand.y, current_right_hand.y, current_user):
       dx = current_right_hand.x - prev_right_hand.x
-      if self.state == "RIGHT":
-        if -dx > self.X_SHORT_THRES:
-          print "RIGHT_BACK"
-          self.state = "RIGHT_BACK"
+      if self.state == "IDLE":
+        if prev_right_hand.x > prev_right_elbow.x:
+          if dx > self.X_LONG_THRES:
+            self.state = "RIGHT"
+            return "LONG_RIGHT_SWIPE"
+          elif dx > self.X_SHORT_THRES:
+            self.state = "RIGHT"
+            return "SHORT_RIGHT_SWIPE"
+        else:
+          if -dx > self.X_LONG_THRES:
+            self.state = "LEFT"
+            return "LONG_LEFT_SWIPE"
+          elif -dx > self.X_SHORT_THRES:
+            self.state = "LEFT"
+            return "SHORT_LEFT_SWIPE"
       elif self.state == "LEFT":
         if dx > self.X_SHORT_THRES:
-          print "LEFT_BACK"
-          self.state = "LEFT_BACK"
-      elif self.state in ["RIGHT_BACK", "IDLE"]:
-        if dx > self.X_LONG_THRES:
-          self.state = "RIGHT"
-          print "LONG RIGHT"
-          return "LONG_RIGHT_SWIPE"
-        elif dx > self.X_SHORT_THRES:
-          self.state = "RIGHT"
-          print "RIGHT"
-          return "SHORT_RIGHT_SWIPE"
-      elif self.state in ["LEFT_BACK", "IDLE"]:
-        if -dx > self.X_LONG_THRES:
-          print "LEFT"
-          self.state = "LEFT"
-          return "LONG_LEFT_SWIPE"
-        elif -dx > self.X_SHORT_THRES:
-          print "LONG LEFT"
-          self.state = "LEFT"
-          return "SHORT_LEFT_SWIPE"
+          self.state = "IDLE"
+      elif self.state == "RIGHT":
+        if -dx > self.X_SHORT_THRES:
+          self.state = "IDLE"
 
 
   def update_tiles(self):
