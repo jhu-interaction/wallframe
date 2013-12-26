@@ -67,11 +67,11 @@ from wallframe_core.srv import *
 from tileflow import TileflowWidget
 
 class AppMenu(WallframeAppWidget):
-  Y_THRES = 300
+  Y_THRES = 100
   X_LONG_THRES = 80
   X_MID_THRES = 80
   X_SHORT_THRES = 30
-
+  STEPS_TO_IDLE = 10
   signal_hide_ = QtCore.Signal()
   signal_show_ = QtCore.Signal()
   signal_click_ = QtCore.Signal()
@@ -93,6 +93,7 @@ class AppMenu(WallframeAppWidget):
     self.current_app_name = ""
     self.current_user = None
     self.state = "IDLE" #IDLE LEFT RIGHT
+    self.idle_steps = 0
     # ROS
     rospy.init_node('wallframe_app_tileflow_menu', anonymous=True)
 
@@ -511,28 +512,44 @@ class AppMenu(WallframeAppWidget):
     #if self.validate_y_for_swipe(prev_left_hand.y, current_left_hand.y,current_user):
       #left_gesture = self.check_for_left_swipe(prev_user, current_user)
     #return left_gesture or right_gesture
+
+    dx = current_right_hand.x - prev_right_hand.x
+    right_base_x = prev_right_elbow.x
+
+    if abs(dx) < self.X_SHORT_THRES:
+      self.idle_steps += 1
+      if self.idle_steps == self.STEPS_TO_IDLE:
+        self.state = "IDLE"
+        right_base_x = prev_right_hand.x
+        self.idle_steps = 0
+
     if self.validate_y_for_swipe(prev_right_hand.y, current_right_hand.y, current_user):
-      dx = current_right_hand.x - prev_right_hand.x
       if self.state == "IDLE":
-        if prev_right_hand.x > prev_right_elbow.x:
+        if prev_right_hand.x > right_base_x - 0.4 * self.X_SHORT_THRES:
           if dx > self.X_LONG_THRES:
+            self.idle_steps = 0
             self.state = "RIGHT"
             return "LONG_RIGHT_SWIPE"
           elif dx > self.X_SHORT_THRES:
+            self.idle_steps = 0
             self.state = "RIGHT"
             return "SHORT_RIGHT_SWIPE"
-        else:
+        elif prev_right_hand.x < right_base_x + 0.4 * self.X_SHORT_THRES:
           if -dx > self.X_LONG_THRES:
+            self.idle_steps = 0
             self.state = "LEFT"
             return "LONG_LEFT_SWIPE"
           elif -dx > self.X_SHORT_THRES:
+            self.idle_steps = 0
             self.state = "LEFT"
             return "SHORT_LEFT_SWIPE"
       elif self.state == "LEFT":
         if dx > self.X_SHORT_THRES:
+          self.idle_steps = 0
           self.state = "IDLE"
       elif self.state == "RIGHT":
         if -dx > self.X_SHORT_THRES:
+          self.idle_steps = 0
           self.state = "IDLE"
 
 
