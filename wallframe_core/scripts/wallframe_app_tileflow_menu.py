@@ -425,14 +425,14 @@ class AppMenu(WallframeAppWidget):
     if self.focused_user_id_ == -1:
       return False
     try:
-        user = self.users_[self.focused_user_id_]
-        right_hand = self.joint_position(user, 'left_hand')
-        left_hand = self.joint_position(user, 'right_hand')
-        head = self.joint_position(user, 'head')
-        torso = self.joint_position(user, 'torso')
-        midpoint = 0.75 * torso.y + 0.25 * head.y
+      user = self.users_[self.focused_user_id_]
+      right_hand = self.joint_position(user, 'left_hand')
+      left_hand = self.joint_position(user, 'right_hand')
+      head = self.joint_position(user, 'head')
+      torso = self.joint_position(user, 'torso')
+      midpoint = 0.75 * torso.y + 0.25 * head.y
 
-        return right_hand.y > midpoint
+      return right_hand.y > midpoint
     # The user id does not exist in the user map
     except IndexError as e:
         return False
@@ -496,18 +496,43 @@ class AppMenu(WallframeAppWidget):
     prev_left_hand = self.joint_position(prev_user, 'right_hand')
     prev_right_hand = self.joint_position(prev_user, 'left_hand')
     # TODO think about what both the two swipe gestures happen together
-#    print "Difference y ", prev_left_hand.y - current_left_hand.y
-#    print "Difference x ", prev_left_hand.x - current_left_hand.x
-#    print "Absolute val y", prev_left_hand.y
-#    print "Absolute val x", prev_left_hand.x
 
     right_gesture = None
     left_gesture = None
-    if self.validate_y_for_swipe(prev_right_hand.y, current_right_hand.y,current_user):
-      right_gesture = self.check_for_right_swipe(prev_user, current_user)
-    if self.validate_y_for_swipe(prev_left_hand.y, current_left_hand.y,current_user):
-      left_gesture = self.check_for_left_swipe(prev_user, current_user)
-    return left_gesture or right_gesture
+    #if self.validate_y_for_swipe(prev_right_hand.y, current_right_hand.y,current_user):
+      #right_gesture = self.check_for_right_swipe(prev_user, current_user)
+    #if self.validate_y_for_swipe(prev_left_hand.y, current_left_hand.y,current_user):
+      #left_gesture = self.check_for_left_swipe(prev_user, current_user)
+    #return left_gesture or right_gesture
+    if self.validate_y_for_swipe(prev_right_hand.y, current_right_hand.y, current_user):
+      dx = current_right_hand.x - prev_right_hand.x
+      if self.state == "RIGHT":
+        if -dx > self.X_SHORT_THRES:
+          print "RIGHT_BACK"
+          self.state = "RIGHT_BACK"
+      elif self.state == "LEFT":
+        if dx > self.X_SHORT_THRES:
+          print "LEFT_BACK"
+          self.state = "LEFT_BACK"
+      elif self.state in ["RIGHT_BACK", "IDLE"]:
+        if dx > self.X_LONG_THRES:
+          self.state = "RIGHT"
+          print "LONG RIGHT"
+          return "LONG_RIGHT_SWIPE"
+        elif dx > self.X_SHORT_THRES:
+          self.state = "RIGHT"
+          print "RIGHT"
+          return "SHORT_RIGHT_SWIPE"
+      elif self.state in ["LEFT_BACK", "IDLE"]:
+        if -dx > self.X_LONG_THRES:
+          print "LEFT"
+          self.state = "LEFT"
+          return "LONG_LEFT_SWIPE"
+        elif -dx > self.X_SHORT_THRES:
+          print "LONG LEFT"
+          self.state = "LEFT"
+          return "SHORT_LEFT_SWIPE"
+
 
   def update_tiles(self):
     if self.run_:
