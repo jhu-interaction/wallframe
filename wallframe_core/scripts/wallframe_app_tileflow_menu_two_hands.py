@@ -93,6 +93,8 @@ class AppMenu(WallframeAppWidget):
     self.current_app_name = ""
     self.current_user = None
     self.state = "IDLE" #IDLE LEFT RIGHT
+
+    self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
     # ROS
     rospy.init_node('wallframe_app_tileflow_menu', anonymous=True)
 
@@ -211,7 +213,7 @@ class AppMenu(WallframeAppWidget):
     self.signal_hide_.connect(self.hide_menu)
     self.signal_click_.connect(self.click)
 
-    self.show_tooltip("Place left hand on right elbow to click")
+    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click")
 
 
 
@@ -351,7 +353,9 @@ class AppMenu(WallframeAppWidget):
     self.load_app(self.app_menu_items_[ind])
 
   def load_app(self, app_name, default=False):
+    self.show_tooltip("tooltip_menu", "Loading...")
     self.toast_pub_.publish(String('Loading App ' + app_name))
+
     self.signal_hide_.emit()
     rospy.wait_for_service('wallframe/core/app_manager/load_app')
     try:
@@ -361,6 +365,7 @@ class AppMenu(WallframeAppWidget):
       print ret_success
       self.current_app_name = app_name
       self.toast_pub_.publish(String(app_name + " running"))
+      self.show_tooltip("tooltip_menu", "Place hands on head to show menu")
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
@@ -376,25 +381,25 @@ class AppMenu(WallframeAppWidget):
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
-  def show_tooltip(self, text):
-    rospy.wait_for_service('tooltip/update_text')
-    update_text_cb = rospy.ServiceProxy('tooltip/update_text', update_text)
+  def show_tooltip(self, tooltip_name, text):
+    rospy.wait_for_service(tooltip_name + '/update_text')
+    update_text_cb = rospy.ServiceProxy(tooltip_name + '/update_text', update_text)
     try:
         success = update_text_cb("Menu", text)
     except rospy.ServiceException as exc:
-        rospy.logerr("WallframeTooltip: update_text service could not update the text")
+        rospy.logerr("WallframeTooltip: [tooltip " + tooltip_name + "] update_text service could not update the text")
 
-  def hide_tooltip_from_menu(self):
-    rospy.wait_for_service('tooltip/hide_tooltip')
-    hide_cb = rospy.ServiceProxy('tooltip/hide_tooltip', hide_tooltip)
+  def hide_tooltip_from_menu(self, tooltip_name):
+    rospy.wait_for_service(tooltip_name + '/hide_tooltip')
+    hide_cb = rospy.ServiceProxy(tooltip_name + '/hide_tooltip', hide_tooltip)
     try:
         success = hide_cb("Menu")
     except rospy.ServiceException as exc:
-        rospy.logerr("WallframeTooltip: hide service could not hide the tooltip")
+        rospy.logerr("WallframeTooltip: [tooltip " + tooltip_name + "] hide service could not hide the tooltip")
 
 
   def hide_menu(self):
-    self.hide_tooltip_from_menu()
+    self.hide_tooltip_from_menu("tooltip_app")
     self.hide()
     self.update()
     self.hidden_ = True
@@ -402,7 +407,7 @@ class AppMenu(WallframeAppWidget):
     pass
 
   def show_menu(self):
-    self.show_tooltip("Place left hand on right elbow to click")
+    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click")
     self.show()
     self.update()
     self.hidden_ = False

@@ -1,0 +1,23 @@
+<launch>
+  <group ns="/wallframe/core">
+    <node pkg="wallframe_core" name="wallframe_tooltip" type="wallframe_tooltip.py" output="screen"/>
+  </group>
+  <rosparam>
+    wallframe:
+      core:
+        params:
+          x: 1680
+          y: 24
+          width: 5760
+          height: 3197
+        default_app: image_storm
+      tooltip:
+        params:
+          name: tooltip_app
+          width_percentage: 0.2
+          height_percentage: 0.08
+          x_percentage: 0.7
+          y_percentage: 0.05
+  </rosparam>
+
+</launch>
