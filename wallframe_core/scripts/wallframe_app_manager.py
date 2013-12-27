@@ -194,22 +194,25 @@ class WallframeAppManager():
     rospy.logwarn("WallframeAppManager: Loading Applications from[" + self.app_path_ + "]")
 
     available_app_list = {}
+    app_names = {}
     for config_full_path in self.find_files(self.app_path_, "menu.cfg"):
       print config_full_path
       self.config_parser.read(config_full_path)
       app_name = self.config_parser.get("app", "name")
+      app_user_friendly_name = self.config_parser.get("app", "user_friendly_name")
+      print app_user_friendly_name
       app_launch_path = self.config_parser.get("app", "launch")
       app_package_path = os.path.dirname(config_full_path)
       app_package_name = os.path.basename(app_package_path)
       app_launch_file_name = os.path.basename(app_launch_path)
       available_app_list[app_name] = app_package_path
-
+      app_names[app_name] = app_user_friendly_name
       launch_file = {"launch_name": app_launch_file_name, "package_name": app_package_name}
       rospy.logwarn("Package: " + app_package_name + " Launch: " + app_launch_file_name)
       self.apps[app_name] = launch_file
 
     rospy.set_param("/wallframe/core/available_apps", available_app_list)
-
+    rospy.set_param("/wallframe/core/app_names", app_names)
   #this function returns a generator of absolute file paths of the given file name
   def find_files(self, directory, pattern):
     for root, dirs, files in os.walk(directory):

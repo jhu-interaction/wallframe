@@ -154,6 +154,13 @@ class AppMenu(WallframeAppWidget):
       self.app_paths_ = rospy.get_param("/wallframe/core/available_apps")
     else:
       rospy.logerr("WallframeAppMenu: parameter [available_apps] not found on server")
+
+    ### User Friendly Application names ###
+    if rospy.has_param("/wallframe/core/app_names"):
+      self.app_names_ = rospy.get_param("/wallframe/core/app_names")
+    else:
+      rospy.logerr("WallframeAppMenu: parameter [app_names] not found on server")
+
     ### Default App ###
     if rospy.has_param("/wallframe/core/default_app"):
       self.default_app_name_ = rospy.get_param("/wallframe/core/default_app")
@@ -211,7 +218,6 @@ class AppMenu(WallframeAppWidget):
     # Hide and Show Connections
     self.signal_show_.connect(self.show_menu)
     self.signal_hide_.connect(self.hide_menu)
-    self.signal_click_.connect(self.click)
 
     self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click")
 
@@ -323,7 +329,7 @@ class AppMenu(WallframeAppWidget):
         else:
           if msg.message == 'all_users_left':
             rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should close app and show menu")
-            self.toast_pub_.publish(String('Closing Apps'))
+            self.toast_pub_.publish(String('Closing All Apps'))
             self.close_all_apps()
             # If close all apps is successful, show menu
             self.signal_show_.emit()
@@ -331,17 +337,17 @@ class AppMenu(WallframeAppWidget):
       ### User Events ###
       if msg.event_id == 'hand_event' and msg.user_id == self.focused_user_id_:
         # Hands on head to quit app
-        if msg.message == 'hands_on_head':
+        if msg.message == 'hands_on_head' and self.hidden_ == True:
           rospy.logdebug("WallframeMenu: HANDS_HEAD received, should resume menu")
           self.toast_pub_.publish(String('Closing All Apps'))
           rospy.wait_for_service('wallframe/core/app_manager/close_all_apps')
 
           self.close_app(self.current_app_name)
+          self.current_app_name = ""
           self.signal_show_.emit()
         # Click to start app
         if msg.message == 'left_elbow_click':
           print "captured left_elbow_click"
-          self.signal_click_.emit()
           if self.hidden_ == False:
             print msg.message
             rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
@@ -354,7 +360,7 @@ class AppMenu(WallframeAppWidget):
 
   def load_app(self, app_name, default=False):
     self.show_tooltip("tooltip_menu", "Loading...")
-    self.toast_pub_.publish(String('Loading App ' + app_name))
+    self.toast_pub_.publish(String('Loading App ' + self.app_names_[app_name]))
 
     self.signal_hide_.emit()
     rospy.wait_for_service('wallframe/core/app_manager/load_app')
@@ -364,20 +370,20 @@ class AppMenu(WallframeAppWidget):
       ret_success = self.srv_load_app(app_name, default)
       print ret_success
       self.current_app_name = app_name
-      self.toast_pub_.publish(String(app_name + " running"))
+      self.toast_pub_.publish(String(self.app_names_[app_name] + " running"))
       self.show_tooltip("tooltip_menu", "Place hands on head to show menu")
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
   def close_app(self, app_name):
-    self.toast_pub_.publish(String("Closing App " + app_name))
+    self.toast_pub_.publish(String("Closing " + self.app_names_[app_name]))
     rospy.wait_for_service("wallframe/core/app_manager/close_app")
     try:
       self.srv_close_app = rospy.ServiceProxy('wallframe/core/app_manager/close_app',
                                               wallframe_core.srv.close_app)
       ret_success = self.srv_close_app(app_name)
       self.current_app_name = ""
-      self.toast_pub_.publish(String(app_name + ' Closed'))
+      self.toast_pub_.publish(String(self.app_names_[app_name] + ' Closed'))
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
@@ -540,8 +546,6 @@ class AppMenu(WallframeAppWidget):
       #self.tileflow_widget.update_cursor(cursor_position)
 
 
-  def click(self):
-    print "click"
 
   def run(self):
     self.show()
