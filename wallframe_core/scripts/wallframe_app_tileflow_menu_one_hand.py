@@ -436,7 +436,7 @@ class AppMenu(WallframeAppWidget):
       return right_hand.y > midpoint
     # The user id does not exist in the user map
     except IndexError as e:
-        return False
+      return False
 
   def check_gesture(self, prev_user, current_user):
     # LONG_RIGHT_SWIPE, SHORT_RIGHT_SWIPE, LONG_LEFT_SWIPE, SHORT_LEFT_SWIPE
@@ -522,11 +522,11 @@ class AppMenu(WallframeAppWidget):
         self.state = "IDLE"
         right_base_x = prev_right_hand.x
         self.idle_steps = 0
-        #print "reset base"
+        print "RESET BASE"
 
     if self.validate_y_for_swipe(prev_right_hand.y, current_right_hand.y, current_user):
       if self.state == "IDLE":
-        if prev_right_hand.x > right_base_x - 0.4 * self.X_SHORT_THRES:
+        if prev_right_hand.x > right_base_x + 0.2 * self.X_SHORT_THRES:
           if dx > self.X_LONG_THRES:
             self.idle_steps = 0
             self.state = "RIGHT"
@@ -537,7 +537,8 @@ class AppMenu(WallframeAppWidget):
             self.state = "RIGHT"
             print "SHORT RIGHT"
             return "SHORT_RIGHT_SWIPE"
-        elif prev_right_hand.x < right_base_x + 0.4 * self.X_SHORT_THRES:
+        if prev_right_hand.x < right_base_x - 0.2 * self.X_SHORT_THRES:
+
           if -dx > self.X_LONG_THRES:
             self.idle_steps = 0
             self.state = "LEFT"
@@ -548,8 +549,8 @@ class AppMenu(WallframeAppWidget):
             self.state = "LEFT"
             print "LEFT"
             return "SHORT_LEFT_SWIPE"
-        else:
-          print "NOT RECOGNIZED GESTURE"
+        #else:
+          #print "NOT RECOGNIZED GESTURE"
       elif self.state == "LEFT":
         if dx > self.X_SHORT_THRES:
           self.idle_steps = 0
@@ -564,7 +565,8 @@ class AppMenu(WallframeAppWidget):
           print "RIGHT -> IDLE"
         else:
           print "BLOCKED"
-
+    else:
+      print "FAILED Y VALIDATION"
 
   def update_tiles(self):
     if self.run_:
