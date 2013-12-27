@@ -14,7 +14,8 @@
   <param name="/wallframe/menu/params/cursor_path" value="$(find wallframe_core)/assets/cursor_open.png" /> 
   <param name="/wallframe/menu/params/cursor_path_alt" value="$(find wallframe_core)/assets/cursor_closed.png" /> 
   <param name="/wallframe/menu/params/background_path" value="$(find wallframe_core)/assets/background.jpg" /> 
-  <node pkg="wallframe_core" name="wallframe_app_tileflow_menu" type="wallframe_app_tileflow_menu.py" output="screen"/>
+  <node pkg="wallframe_core" name="wallframe_app_tileflow_menu" type="wallframe_app_tileflow_menu_two_hands.py" output="screen"/>
+  <!-- <node pkg="wallframe_core" name="wallframe_app_tileflow_menu" type="wallframe_app_tileflow_menu_one_hand.py" output="screen"/> -->
   
   <rosparam>
     wallframe:
