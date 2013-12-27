@@ -212,7 +212,7 @@ class AppMenu(WallframeAppWidget):
     self.signal_hide_.connect(self.hide_menu)
     self.signal_click_.connect(self.click)
 
-    self.show_tooltip("Place left hand on right elbow to click")
+    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click")
 
 
 
@@ -377,17 +377,17 @@ class AppMenu(WallframeAppWidget):
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
-  def show_tooltip(self, text):
-    rospy.wait_for_service('tooltip/update_text')
-    update_text_cb = rospy.ServiceProxy('tooltip/update_text', update_text)
+  def show_tooltip(self, tooltip_name, text):
+    rospy.wait_for_service(tooltip_name + '/update_text')
+    update_text_cb = rospy.ServiceProxy(tooltip_name + '/update_text', update_text)
     try:
         success = update_text_cb("Menu", text)
     except rospy.ServiceException as exc:
         rospy.logerr("WallframeTooltip: update_text service could not update the text")
 
-  def hide_tooltip_from_menu(self):
-    rospy.wait_for_service('tooltip/hide_tooltip')
-    hide_cb = rospy.ServiceProxy('tooltip/hide_tooltip', hide_tooltip)
+  def hide_tooltip_from_menu(self, tooltip_name):
+    rospy.wait_for_service(tooltip_name + '/hide_tooltip')
+    hide_cb = rospy.ServiceProxy(tooltip_name + '/hide_tooltip', hide_tooltip)
     try:
         success = hide_cb("Menu")
     except rospy.ServiceException as exc:
@@ -395,7 +395,7 @@ class AppMenu(WallframeAppWidget):
 
 
   def hide_menu(self):
-    self.hide_tooltip_from_menu()
+    self.hide_tooltip_from_menu("tooltip_app")
     self.hide()
     self.update()
     self.hidden_ = True
@@ -403,7 +403,7 @@ class AppMenu(WallframeAppWidget):
     pass
 
   def show_menu(self):
-    self.show_tooltip("Place left hand on right elbow to click")
+    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click")
     self.show()
     self.update()
     self.hidden_ = False
@@ -516,7 +516,7 @@ class AppMenu(WallframeAppWidget):
     dx = current_right_hand.x - prev_right_hand.x
     right_base_x = prev_right_elbow.x
 
-    if abs(dx) < self.X_SHORT_THRES:
+    if abs(dx) < self.X_SHORT_THRES and self.state != "IDLE":
       self.idle_steps += 1
       if self.idle_steps == self.STEPS_TO_IDLE:
         self.state = "IDLE"
