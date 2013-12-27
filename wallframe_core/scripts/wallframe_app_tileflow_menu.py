@@ -522,6 +522,7 @@ class AppMenu(WallframeAppWidget):
         self.state = "IDLE"
         right_base_x = prev_right_hand.x
         self.idle_steps = 0
+        #print "reset base"
 
     if self.validate_y_for_swipe(prev_right_hand.y, current_right_hand.y, current_user):
       if self.state == "IDLE":
@@ -529,28 +530,40 @@ class AppMenu(WallframeAppWidget):
           if dx > self.X_LONG_THRES:
             self.idle_steps = 0
             self.state = "RIGHT"
+            print "LONG RIGHT"
             return "LONG_RIGHT_SWIPE"
           elif dx > self.X_SHORT_THRES:
             self.idle_steps = 0
             self.state = "RIGHT"
+            print "SHORT RIGHT"
             return "SHORT_RIGHT_SWIPE"
         elif prev_right_hand.x < right_base_x + 0.4 * self.X_SHORT_THRES:
           if -dx > self.X_LONG_THRES:
             self.idle_steps = 0
             self.state = "LEFT"
+            print "LONG LEFT"
             return "LONG_LEFT_SWIPE"
           elif -dx > self.X_SHORT_THRES:
             self.idle_steps = 0
             self.state = "LEFT"
+            print "LEFT"
             return "SHORT_LEFT_SWIPE"
+        else:
+          print "NOT RECOGNIZED GESTURE"
       elif self.state == "LEFT":
         if dx > self.X_SHORT_THRES:
           self.idle_steps = 0
           self.state = "IDLE"
+          print "LEFT -> IDLE"
+        else:
+          print "BLOCKED"
       elif self.state == "RIGHT":
         if -dx > self.X_SHORT_THRES:
           self.idle_steps = 0
           self.state = "IDLE"
+          print "RIGHT -> IDLE"
+        else:
+          print "BLOCKED"
 
 
   def update_tiles(self):
