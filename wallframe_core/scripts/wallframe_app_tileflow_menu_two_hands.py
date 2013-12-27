@@ -324,7 +324,8 @@ class AppMenu(WallframeAppWidget):
         if self.screensaver_:
           if msg.message == 'all_users_left' and self.current_app_name != self.default_app_name_:
             rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should start default app")
-            self.close_app(self.current_app_name)
+            if self.current_app_name:
+                self.close_app(self.current_app_name)
             self.load_app(self.default_app_name_, default=True)
         else:
           if msg.message == 'all_users_left':
@@ -341,9 +342,9 @@ class AppMenu(WallframeAppWidget):
           rospy.logdebug("WallframeMenu: HANDS_HEAD received, should resume menu")
           self.toast_pub_.publish(String('Closing All Apps'))
           rospy.wait_for_service('wallframe/core/app_manager/close_all_apps')
-
-          self.close_app(self.current_app_name)
-          self.current_app_name = ""
+          if self.current_app_name:
+            self.close_app(self.current_app_name)
+            self.current_app_name = ""
           self.signal_show_.emit()
         # Click to start app
         if msg.message == 'left_elbow_click':
