@@ -10,7 +10,8 @@
   <!-- Infobar at the bottom of the screen that shows user avatar and messages -->
   <node pkg="wallframe_core" name="wallframe_infobar" type="wallframe_infobar.py" output="screen"/>
 
-  <node pkg="wallframe_core" name="wallframe_tooltip" type="wallframe_tooltip.py" output="screen"/>
+  <node pkg="wallframe_core" name="wallframe_menu_tooltip" type="wallframe_tooltip.py" output="screen" args="wallframe_menu_tooltip"/>
+  <node pkg="wallframe_core" name="wallframe_app_tooltip" type="wallframe_tooltip.py" output="screen" args="wallframe_app_tooltip"/>
   <param name="/wallframe/menu/params/cursor_path" value="$(find wallframe_core)/assets/cursor_open.png" /> 
   <param name="/wallframe/menu/params/cursor_path_alt" value="$(find wallframe_core)/assets/cursor_closed.png" /> 
   <param name="/wallframe/menu/params/background_path" value="$(find wallframe_core)/assets/background.jpg" /> 
@@ -38,6 +39,20 @@
           border_scale: .02
           y_offset: -600.0
           screensaver: yes
+      wallframe_app_tooltip:
+        params:
+          name: tooltip_app
+          width_percentage: 0.2
+          height_percentage: 0.08
+          x_percentage: 0.7
+          y_percentage: 0.05
+      wallframe_menu_tooltip:
+        params:
+          name: tooltip_menu
+          width_percentage: 0.2
+          height_percentage: 0.08
+          x_percentage: 0.7
+          y_percentage: 0.95
   </rosparam>
 
 

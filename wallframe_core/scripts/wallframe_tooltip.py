@@ -65,31 +65,32 @@ import signal
 class WallframeTooltip(QWidget):
     SIGNAL_HIDE = QtCore.Signal()
     SIGNAL_SHOW = QtCore.Signal()
-    def __init__(self):
+    def __init__(self, node_name):
         QWidget.__init__(self)
-
+        self.node_name = node_name
         self.wall_height = rospy.get_param("/wallframe/core/params/height", 3197)
         self.wall_width = rospy.get_param("/wallframe/core/params/width", 5760)
 
         self.x = rospy.get_param("/wallframe/core/params/x", 1680)
         self.y = rospy.get_param("/wallframe/core/params/y", 24)
 
-        self.height = rospy.get_param("/wallframe/tooltip/params/height_percentage", 0.08) * self.wall_height
-        self.width = rospy.get_param("/wallframe/tooltip/params/width_percentage", 0.2) * self.wall_width
+        self.height = rospy.get_param("/wallframe/" + self.node_name + "/params/height_percentage", 0.08) * self.wall_height
+        self.width = rospy.get_param("/wallframe/" + self.node_name + "/params/width_percentage", 0.2) * self.wall_width
 
-        self.x_position = rospy.get_param("/wallframe/tooltip/params/x_percentage", 0.7) * self.wall_width + self.x
-        self.y_position = rospy.get_param("/wallframe/tooltip/params/y_percentage", 0.05) * self.wall_height + self.y
+        self.x_position = rospy.get_param("/wallframe/"+ self.node_name + "/params/x_percentage", 0.7) * self.wall_width + self.x
+        self.y_position = rospy.get_param("/wallframe/" + self.node_name + "/params/y_percentage", 0.05) * self.wall_height + self.y
+        self.name = rospy.get_param("/wallframe/" + self.node_name + "/params/name")
         self.setStyleSheet("background-color:#ffffff;color:#222222")
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint )
         # the tool tip always stays on top
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        self.move(self.x_position, self.y_position)
         self.show()
         #self.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.SmoothPixmapTransform)
         self.setAutoFillBackground(True)
         self.setWindowOpacity(.9)
-        self.move(self.x_position, self.y_position)
         self.resize(self.width, self.height)
-        print "Tool tip height" , self.height , "widht " , self.width
+        print "Tool tip height" , self.height , "width " , self.width
         print "xpos " ,  self.x_position , " ypos" , self.y_position
 
 
@@ -101,10 +102,11 @@ class WallframeTooltip(QWidget):
 
 
         # ROS Services
-        self.update_text_srv = rospy.Service('tooltip/update_text', wallframe_core.srv.update_text, self.update_text_service)
-        rospy.logwarn("WallframeTooltip: Service Ready [ update_text ]")
-        self.hide_tooltip_srv = rospy.Service('tooltip/hide_tooltip', wallframe_core.srv.hide_tooltip, self.hide_tooltip_service)
-        rospy.logwarn("WallframeTooltip: Service Ready [ hide ]")
+
+        self.update_text_srv = rospy.Service(self.name + '/update_text', wallframe_core.srv.update_text, self.update_text_service)
+        rospy.logwarn("WallframeTooltip: Service Ready [" + self.name + "/update_text ]")
+        self.hide_tooltip_srv = rospy.Service(self.name + '/hide_tooltip', wallframe_core.srv.hide_tooltip, self.hide_tooltip_service)
+        rospy.logwarn("WallframeTooltip: Service Ready [" + self.name + "/hide_tooltip ]")
 
         self.SIGNAL_HIDE.connect(self.hide_tooltip)
         self.SIGNAL_SHOW.connect(self.show_tooltip)
@@ -128,9 +130,13 @@ class WallframeTooltip(QWidget):
         return True
 # MAIN
 if __name__ == '__main__':
-    rospy.init_node('wallframe_tooltip',anonymous=True)
+    try:
+        node_name = sys.argv[1]
+    except:
+        node_name = "wallframe_tooltip"
+    rospy.init_node(node_name, anonymous=True)
     app = QApplication(sys.argv)
-    tooltip = WallframeTooltip()
+    tooltip = WallframeTooltip(node_name)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     # Running
     app.exec_()
