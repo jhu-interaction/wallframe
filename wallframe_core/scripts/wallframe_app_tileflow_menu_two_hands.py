@@ -219,7 +219,7 @@ class AppMenu(WallframeAppWidget):
     self.signal_show_.connect(self.show_menu)
     self.signal_hide_.connect(self.hide_menu)
 
-    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click", "cursor.jpg")
+    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click", "")
 
 
 
@@ -361,7 +361,7 @@ class AppMenu(WallframeAppWidget):
     self.load_app(self.app_menu_items_[ind])
 
   def load_app(self, app_name, default=False):
-    self.show_tooltip("tooltip_menu", "Loading...", "cursor_open.png")
+    self.show_tooltip("tooltip_menu", "Loading...", "")
     self.toast_pub_.publish(String('Loading App ' + self.app_names_[app_name]))
 
     self.signal_hide_.emit()
