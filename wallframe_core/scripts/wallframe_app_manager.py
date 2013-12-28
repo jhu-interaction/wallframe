@@ -102,18 +102,18 @@ class WallframeAppManager():
     rospy.logwarn("WallframeAppManager: Finished")
 
   def load_app_service(self, req):
-    message = "WallframeAppManager: Service Call to LOAD APP ["+req.app_name+"]"
-    if self.load_app(req.app_name, req.background) == True:
+    message = "WallframeAppManager: Service Call to LOAD APP ["+req.app_id+"]"
+    if self.load_app(req.app_id, req.background) == True:
       return "LOAD APP -- SUCCESS"
     else:
       return "LOAD APP -- FAILED -- App not found or could not load"
     pass
 
   def close_app_service(self, req):
-    message = "WallframeAppManager: Service Call to CLOSE APP ["+req.app_name+"]"
-    if req.app_name in self.active_apps.keys():
+    message = "WallframeAppManager: Service Call to CLOSE APP ["+req.app_id+"]"
+    if req.app_id in self.active_apps.keys():
       rospy.logwarn(message + "SUCCESS")
-      self.close_app(req.app_name)
+      self.close_app(req.app_id)
       return "CLOSE APP -- SUCCESS"
     else:
       rospy.logwarn(message + "FAILED -- App not running")
@@ -137,49 +137,49 @@ class WallframeAppManager():
       print("Remaining parameters cleaned up")
 
   def close_all_apps(self):
-    for app_name in self.active_apps.keys():
-      self.close_app(app_name)
+    for app_id in self.active_apps.keys():
+      self.close_app(app_id)
 
-  def close_app(self, app_name):
-    app = self.active_apps[app_name]
+  def close_app(self, app_id):
+    app = self.active_apps[app_id]
     # Pause the app if it is set to be run in background and is not paused
     if app["background"] and not app["paused"]:
-      print "Pausing " + app_name
+      print "Pausing " + app_id
       app["process"].send_signal(signal.SIGSTOP)
       app["paused"] = True
     else:
-      print "Shutting down " + app_name
+      print "Shutting down " + app_id
       app["process"].terminate()
       while app["process"].poll() == None:
         pass
-      del self.active_apps[app_name]
-    rospy.logwarn("WallframeAppManager: App [" + app_name + "] shutdown successfully")
+      del self.active_apps[app_id]
+    rospy.logwarn("WallframeAppManager: App [" + app_id + "] shutdown successfully")
 
 
-  def load_app(self, app_name, background=False):
-    if app_name in self.active_apps.keys():
+  def load_app(self, app_id, background=False):
+    if app_id in self.active_apps.keys():
       # if the app is in background
-      app = self.active_apps[app_name]
+      app = self.active_apps[app_id]
       if app["paused"] and app["background"]:
-        rospy.logwarn("WallframeAppManager: Unpausing App [" + app_name + "]")
+        rospy.logwarn("WallframeAppManager: Unpausing App [" + app_id + "]")
         app["process"].send_signal(signal.SIGCONT)
         app["paused"] = False
       else:
-        rospy.logerr(app_name + "is already running")
+        rospy.logerr(app_id + "is already running")
         return False
     else:
-      if app_name not in self.apps.keys():
-        rospy.logerr("AppManager App: " + app_name + " not found!")
+      if app_id not in self.apps.keys():
+        rospy.logerr("AppManager App: " + app_id + " not found!")
         return False
-      launch_name = self.apps[app_name]["launch_name"]
-      launch_package = self.apps[app_name]["package_name"]
+      launch_name = self.apps[app_id]["launch_name"]
+      launch_package = self.apps[app_id]["package_name"]
       launch_args = ['roslaunch', launch_package, launch_name]
 
       process = subprocess.Popen(launch_args)
 
-      self.active_apps[app_name] = {"process": process, "background": background, "paused": False}
+      self.active_apps[app_id] = {"process": process, "background": background, "paused": False}
 
-      rospy.logwarn("Launching " + app_name)
+      rospy.logwarn("Launching " + app_id)
     return True
 
   # find which apps have the menu.cfg file and add the app to the
@@ -194,25 +194,25 @@ class WallframeAppManager():
     rospy.logwarn("WallframeAppManager: Loading Applications from[" + self.app_path_ + "]")
 
     available_app_list = {}
-    app_names = {}
+    app_ids = {}
     for config_full_path in self.find_files(self.app_path_, "menu.cfg"):
       print config_full_path
       self.config_parser.read(config_full_path)
+      app_id = self.config_parser.get("app", "id")
       app_name = self.config_parser.get("app", "name")
-      app_user_friendly_name = self.config_parser.get("app", "user_friendly_name")
       print app_user_friendly_name
       app_launch_path = self.config_parser.get("app", "launch")
       app_package_path = os.path.dirname(config_full_path)
       app_package_name = os.path.basename(app_package_path)
       app_launch_file_name = os.path.basename(app_launch_path)
-      available_app_list[app_name] = app_package_path
-      app_names[app_name] = app_user_friendly_name
+      available_app_list[app_id] = app_package_path
+      app_ids[app_id] = app_name
       launch_file = {"launch_name": app_launch_file_name, "package_name": app_package_name}
       rospy.logwarn("Package: " + app_package_name + " Launch: " + app_launch_file_name)
-      self.apps[app_name] = launch_file
+      self.apps[app_id] = launch_file
 
     rospy.set_param("/wallframe/core/available_apps", available_app_list)
-    rospy.set_param("/wallframe/core/app_names", app_names)
+    rospy.set_param("/wallframe/core/app_ids", app_ids)
   #this function returns a generator of absolute file paths of the given file name
   def find_files(self, directory, pattern):
     for root, dirs, files in os.walk(directory):
