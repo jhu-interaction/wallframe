@@ -219,7 +219,7 @@ class AppMenu(WallframeAppWidget):
     self.signal_show_.connect(self.show_menu)
     self.signal_hide_.connect(self.hide_menu)
 
-    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click")
+    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click", "cursor.jpg")
 
 
 
@@ -325,15 +325,16 @@ class AppMenu(WallframeAppWidget):
           if msg.message == 'all_users_left' and self.current_app_name != self.default_app_name_:
             rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should start default app")
             if self.current_app_name:
+                self.signal_show_.emit()
                 self.close_app(self.current_app_name)
             self.load_app(self.default_app_name_, default=True)
         else:
           if msg.message == 'all_users_left':
             rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should close app and show menu")
             self.toast_pub_.publish(String('Closing All Apps'))
+            self.signal_show_.emit()
             self.close_all_apps()
             # If close all apps is successful, show menu
-            self.signal_show_.emit()
 
       ### User Events ###
       if msg.event_id == 'hand_event' and msg.user_id == self.focused_user_id_:
@@ -342,10 +343,10 @@ class AppMenu(WallframeAppWidget):
           rospy.logdebug("WallframeMenu: HANDS_HEAD received, should resume menu")
           self.toast_pub_.publish(String('Closing All Apps'))
           rospy.wait_for_service('wallframe/core/app_manager/close_all_apps')
+          self.signal_show_.emit()
           if self.current_app_name:
             self.close_app(self.current_app_name)
             self.current_app_name = ""
-          self.signal_show_.emit()
         # Click to start app
         if msg.message == 'left_elbow_click':
           print "captured left_elbow_click"
@@ -360,7 +361,7 @@ class AppMenu(WallframeAppWidget):
     self.load_app(self.app_menu_items_[ind])
 
   def load_app(self, app_name, default=False):
-    self.show_tooltip("tooltip_menu", "Loading...")
+    self.show_tooltip("tooltip_menu", "Loading...", "cursor_open.png")
     self.toast_pub_.publish(String('Loading App ' + self.app_names_[app_name]))
 
     self.signal_hide_.emit()
@@ -372,7 +373,7 @@ class AppMenu(WallframeAppWidget):
       print ret_success
       self.current_app_name = app_name
       self.toast_pub_.publish(String(self.app_names_[app_name] + " running"))
-      self.show_tooltip("tooltip_menu", "Place hands on head to show menu")
+      self.show_tooltip("tooltip_menu", "Place hands on head to show menu", "")
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
@@ -388,13 +389,13 @@ class AppMenu(WallframeAppWidget):
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
-  def show_tooltip(self, tooltip_name, text):
-    rospy.wait_for_service(tooltip_name + '/update_text')
-    update_text_cb = rospy.ServiceProxy(tooltip_name + '/update_text', update_text)
+  def show_tooltip(self, tooltip_name, text, background_path):
+    rospy.wait_for_service(tooltip_name + '/update_tooltip')
+    update_tooltip_cb = rospy.ServiceProxy(tooltip_name + '/update_tooltip', update_tooltip)
     try:
-        success = update_text_cb("Menu", text)
+        success = update_tooltip_cb("Menu", text, background_path)
     except rospy.ServiceException as exc:
-        rospy.logerr("WallframeTooltip: [tooltip " + tooltip_name + "] update_text service could not update the text")
+        rospy.logerr("WallframeTooltip: [tooltip " + tooltip_name + "] update_tooltip service could not update the text")
 
   def hide_tooltip_from_menu(self, tooltip_name):
     rospy.wait_for_service(tooltip_name + '/hide_tooltip')
@@ -414,7 +415,7 @@ class AppMenu(WallframeAppWidget):
     pass
 
   def show_menu(self):
-    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click")
+    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click", "")
     self.show()
     self.update()
     self.hidden_ = False

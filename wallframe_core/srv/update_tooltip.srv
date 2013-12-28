@@ -1,0 +1,5 @@
+string app_name
+string text
+string background_path
+---
+bool success

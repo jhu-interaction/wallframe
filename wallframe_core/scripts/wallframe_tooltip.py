@@ -64,7 +64,7 @@ import signal
 ################################################################################
 class WallframeTooltip(QWidget):
     SIGNAL_HIDE = QtCore.Signal()
-    SIGNAL_SHOW = QtCore.Signal()
+    SIGNAL_SHOW = QtCore.Signal(str)
     def __init__(self, node_name):
         QWidget.__init__(self)
         self.node_name = node_name
@@ -80,7 +80,8 @@ class WallframeTooltip(QWidget):
         self.x_position = rospy.get_param("/wallframe/"+ self.node_name + "/params/x_percentage", 0.7) * self.wall_width + self.x
         self.y_position = rospy.get_param("/wallframe/" + self.node_name + "/params/y_percentage", 0.05) * self.wall_height + self.y
         self.name = rospy.get_param("/wallframe/" + self.node_name + "/params/name")
-        self.setStyleSheet("background-color:#ffffff;color:#222222")
+        self.assets_path = rospy.get_param("/wallframe/core/tooltip/assets")
+        #self.setStyleSheet("background-color:#ffffff;color:#222222")
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint )
         # the tool tip always stays on top
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
@@ -97,14 +98,17 @@ class WallframeTooltip(QWidget):
         self.text_label = QLabel('Welcome')
         layout = QHBoxLayout()
         layout.addWidget(self.text_label)
-        self.text_label.setStyleSheet("QLabel { color : blue; font-size: 30px; }")
+        #self.text_label.setStyleSheet("QLabel { color : blue; font-size: 30px; }")
         self.setLayout(layout)
-
-
+        # XXX
+        #image_path = self.assets_path + "/cursor.jpg"
+        #self.pixmap = QPixmap(image_path)
+        #self.text_label.setPixmap(self.pixmap)
+        # XXX
         # ROS Services
 
-        self.update_text_srv = rospy.Service(self.name + '/update_text', wallframe_core.srv.update_text, self.update_text_service)
-        rospy.logwarn("WallframeTooltip: Service Ready [" + self.name + "/update_text ]")
+        self.update_tooltip = rospy.Service(self.name + '/update_tooltip', wallframe_core.srv.update_tooltip, self.update_tooltip_service)
+        rospy.logwarn("WallframeTooltip: Service Ready [" + self.name + "/update_tooltip ]")
         self.hide_tooltip_srv = rospy.Service(self.name + '/hide_tooltip', wallframe_core.srv.hide_tooltip, self.hide_tooltip_service)
         rospy.logwarn("WallframeTooltip: Service Ready [" + self.name + "/hide_tooltip ]")
 
@@ -114,13 +118,20 @@ class WallframeTooltip(QWidget):
         rospy.logwarn("WallframeTooltip: Started")
     def hide_tooltip(self):
         self.hide()
-    def show_tooltip(self):
+    def show_tooltip(self, image_path):
+        #pixmap = QPixmap(image_path)
+        #self.text_label.setPixmap(pixmap)
+        self.text_label.setStyleSheet("background-image: url(" + image_path + "); background-attachment: fixed; repeat: none; overflow: hidden;")
         self.show()
-    def update_text_service(self, request):
+    def update_tooltip_service(self, request):
         message = "WallframeTooltip: Service Call to update the text ["+request.app_name+"]"
         print message
         self.text_label.setText(request.text)
-        self.SIGNAL_SHOW.emit()
+        image_path = self.assets_path + "/" + request.background_path
+        #self.pixmap = QPixmap(image_path)
+        #self.text_label.setPixmap(self.pixmap)
+        #self.text_label.setStyleSheet("background-image: url(" + self.assets_path + "/" + request.background_path + "); background-attachment: fixed")
+        self.SIGNAL_SHOW.emit(image_path)
         return True
 
     def hide_tooltip_service(self, request):
