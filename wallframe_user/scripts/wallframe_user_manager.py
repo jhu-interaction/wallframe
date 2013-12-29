@@ -524,7 +524,13 @@ class UserManager():
     closest = -1
     closest_dist = 1000000
     for uid, user in self.users_.items():
+
+      # TODO: How can this array be empty?
+      if not user.current_state_msg.translations_mm:
+        continue
+
       user_dist = user.current_state_msg.translations_mm[2].z
+
       user.current_state_msg.focused = False
       if all([user_dist < closest_dist,user_dist != 0.0]):
         closest_dist = user_dist
