@@ -199,9 +199,10 @@ class WallframeAppManager():
       print config_full_path
       self.config_parser.read(config_full_path)
       app_id = self.config_parser.get("app", "id")
+      print app_id
       app_name = self.config_parser.get("app", "name")
-      print app_user_friendly_name
       app_launch_path = self.config_parser.get("app", "launch")
+      print app_launch_path
       app_package_path = os.path.dirname(config_full_path)
       app_package_name = os.path.basename(app_package_path)
       app_launch_file_name = os.path.basename(app_launch_path)

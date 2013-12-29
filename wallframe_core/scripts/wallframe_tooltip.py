@@ -121,10 +121,10 @@ class WallframeTooltip(QWidget):
     def show_tooltip(self, image_path):
         #pixmap = QPixmap(image_path)
         #self.text_label.setPixmap(pixmap)
-        self.text_label.setStyleSheet("background-image: url(" + image_path + "); background-attachment: fixed; repeat: none; overflow: hidden;")
+        self.text_label.setStyleSheet("background-image: url(" + image_path + "); background-attachment: fixed")
         self.show()
     def update_tooltip_service(self, request):
-        message = "WallframeTooltip: Service Call to update the text ["+request.app_name+"]"
+        message = "WallframeTooltip: Service Call to update the text ["+request.app_id+"]"
         print message
         self.text_label.setText(request.text)
         image_path = self.assets_path + "/" + request.background_path
@@ -135,7 +135,7 @@ class WallframeTooltip(QWidget):
         return True
 
     def hide_tooltip_service(self, request):
-        message = "WallframeTooltip: Service Call to hide ["+request.app_name+"]"
+        message = "WallframeTooltip: Service Call to hide ["+request.app_id+"]"
         print message
         self.SIGNAL_HIDE.emit()
         return True
