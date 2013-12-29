@@ -287,6 +287,10 @@ class WallframeInfobar(QWidget):
     pass
 
   def update_tag(self,uid):
+    # Make sure uid is valid
+    if uid >= len(self.user_tags_) or uid >= len(self.users_) or uid < 0:
+      return
+
     tag = self.user_tags_[uid]
     # userx = self.users_[user_id].translations_mm[joint_id].x
     userx = self.users_[uid].translations_mm[2].x
