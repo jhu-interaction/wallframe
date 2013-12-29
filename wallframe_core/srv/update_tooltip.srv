@@ -1,4 +1,4 @@
-string app_name
+string app_id
 string text
 string background_path
 ---
