@@ -82,7 +82,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
 
             GL.glTranslatef(0, -2.0, 0)
             GL.glScalef(1, -1, 1)
-            GL.glColor4f(1, 1, 1, 0.5)
+            GL.glColor4f(1, 1, 1, 0.3)
 
             GL.glBegin(GL.GL_QUADS)
             GL.glTexCoord2d(1, 0)

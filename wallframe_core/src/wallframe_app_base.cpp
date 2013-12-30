@@ -131,10 +131,8 @@ void WallframeAppBase::requestAppCallback(const wallframe_msgs::WallframeRequest
       return;
 
 
-    std::cout  << "The App id is " << app_id_;
     if(request_app->app_id == this->app_id_){
     
-    std::cout  << "The App id is " << app_id_;
       if(request_app-> command == "terminate"){
         this->stop();
       }
