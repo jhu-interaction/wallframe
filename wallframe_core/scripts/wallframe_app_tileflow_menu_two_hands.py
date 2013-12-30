@@ -93,6 +93,8 @@ class AppMenu(WallframeAppWidget):
     self.current_app_id = ""
     self.current_user = None
     self.state = "IDLE" #IDLE LEFT RIGHT
+    # flag to check if the menu is active
+    self.is_active = False
 
     self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
     # ROS
@@ -242,7 +244,7 @@ class AppMenu(WallframeAppWidget):
     self.cur_ind_y_ = 0
     self.grid_set_up_ = True
 
-
+#TODO this function should be in utilies
   def convert_workspace(self,user_pos):
     screen_pos = []
     x_min = self.workspace_limits_[0]
@@ -319,7 +321,18 @@ class AppMenu(WallframeAppWidget):
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
-# TODO update the toast notifications
+
+  def activate_menu(self):
+    # show the menu
+    self.signal_show_.emit()
+    self.is_active = True
+
+  def deactivate_menu(self):
+    # hide the menu
+    self.signal_hide_.emit()
+    self.is_active = False
+
+  # TODO update the toast notifications
   def user_event_cb(self,msg):
     print msg.event_id
     print msg.message
@@ -329,11 +342,7 @@ class AppMenu(WallframeAppWidget):
           # terminate the current running app
           self.terminate_app(self.current_app_id)
 
-
-
-
-          # hide the menu
-          self.signal_hide_.emit()
+          self.deactivate_menu()
 
           # resume the screen saver
           self.resume_app(self.default_app_id_)
@@ -348,12 +357,12 @@ class AppMenu(WallframeAppWidget):
 
           # pause the screen saver
           self.pause_app(self.default_app_id_);
-
-          # show the menu
-          self.signal_show_.emit()
           self.current_app_id = ""
 
-        if msg.message == 'hands_together':
+          self.activate_menu()
+
+        # if click gesture is detected and the menu is active
+        if msg.message == 'left_elbow_click' and self.is_active == True:
           # terminate the current running app
           self.terminate_app(self.current_app_id)
 
@@ -366,8 +375,7 @@ class AppMenu(WallframeAppWidget):
 
           # TODO ideally we should hide the menu only after the launching of
           # app is complete else default screen is shown for
-          # hide the menu
-          self.signal_hide_.emit()
+          self.deactivate_menu()
 
 
   #def user_event_cb(self, msg):
