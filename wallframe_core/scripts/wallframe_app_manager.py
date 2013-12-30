@@ -46,16 +46,12 @@ from roslaunch.core import Node
 from roslaunch.scriptapi import ROSLaunch
 import subprocess
 
-from geometry_msgs.msg import Transform
-from geometry_msgs.msg import Vector3
-from std_msgs.msg import Bool
-from std_msgs.msg import String
+#from geometry_msgs.msg import Transform
+#from geometry_msgs.msg import Vector3
+#from std_msgs.msg import Bool
+#from std_msgs.msg import String
 
-from wallframe_msgs.msg import WallframeUser as user_msg
-from wallframe_msgs.msg import WallframeUserArray as user_array_msg
-from wallframe_msgs.msg import WallframeUserEvent as user_event_msg
-from wallframe_msgs.msg import TrackerUser
-from wallframe_msgs.msg import TrackerUserArray as tracker_msg
+from wallframe_msgs.msg import WallframeRequestApp as request_app_msg
 
 import wallframe_core
 import ConfigParser
@@ -82,14 +78,29 @@ class WallframeAppManager():
 
     # ROS Services
 
+    # load the applications
     self.load_app_srv_ = rospy.Service('app_manager/load_app', wallframe_core.srv.load_app, self.load_app_service)
     rospy.logwarn("WallframeAppManager: Service Ready [ load_app ]")
-    self.close_app_srv_ = rospy.Service('app_manager/close_app', wallframe_core.srv.close_app, self.close_app_service)
-    rospy.logwarn("WallframeAppManager: Service Ready [ close_app ]")
+
+    # terminate the app
+    self.terminate_app_srv_ = rospy.Service('app_manager/terminate_app', wallframe_core.srv.terminate_app, self.terminate_app_service)
+    rospy.logwarn("WallframeAppManager: Service Ready [ terminate_app ]")
+
+    # pause the app
+    #self.pause_app_srv_ = rospy.Service('app_manager/pause_app', wallframe_core.srv.pause_app, self.pause_app_service)
+    #rospy.logwarn("WallframeAppManager: Service Ready [ pause_app ]")
+
+    ## resume the app
+    #self.resume_app_srv_ = rospy.Service('app_manager/resume_app', wallframe_core.srv.resume_app, self.resume_app_service)
+    #rospy.logwarn("WallframeAppManager: Service Ready [ resume_app ]")
+
+    # TODO remove this later
     self.close_all_apps_srv_ = rospy.Service('app_manager/close_all_apps', wallframe_core.srv.close_all_apps, self.close_all_apps_service)
     rospy.logwarn("WallframeAppManager: Service Ready [ close_all_apps ]")
-    #self.pause_app_srv = rospy.Service('app_manager/pause_app', wallframe_core.srv.pause_app, self.pause_app_service)
-    #rospy.logwarn("WallframeAppManager: Service Ready [ pause_app ]")
+
+
+    # ROS Publishers
+    self.request_app_pub_ = rospy.Publisher("/app/request",request_app_msg)
 
     # Running
     rospy.logwarn("WallframeAppManager: Started")
@@ -102,22 +113,49 @@ class WallframeAppManager():
     rospy.logwarn("WallframeAppManager: Finished")
 
   def load_app_service(self, req):
-    message = "WallframeAppManager: Service Call to LOAD APP ["+req.app_id+"]"
-    if self.load_app(req.app_id, req.background) == True:
-      return "LOAD APP -- SUCCESS"
-    else:
-      return "LOAD APP -- FAILED -- App not found or could not load"
+    rospy.loginfo("WallframeAppManager: Service Call to LOAD APP ["+req.app_id+"]")
+    return self.load_app(req.app_id)
+
+    #if self.load_app(req.app_id, req.background) == True:
+      #return "LOAD APP -- SUCCESS"
+    #else:
+      #return "LOAD APP -- FAILED -- App not found or could not load"
+    #pass
+
+  def terminate_app_service(self, req):
+    rospy.loginfo("WallframeAppManager: Service Call to TERMINATE ["+req.app_id+"]")
+    if req.app_id in self.active_apps.keys():
+      return self.request_app(req.app_id, "terminate")
+
+    rospy.logerr("WallFrameAppManager: Terminate service call for inactive app ["+req.app_id+"]")
+    return False
     pass
 
-  def close_app_service(self, req):
-    message = "WallframeAppManager: Service Call to CLOSE APP ["+req.app_id+"]"
-    if req.app_id in self.active_apps.keys():
-      rospy.logwarn(message + "SUCCESS")
-      self.close_app(req.app_id)
-      return "CLOSE APP -- SUCCESS"
-    else:
-      rospy.logwarn(message + "FAILED -- App not running")
-      return "CLOSE APP -- FAIL -- App not running"
+  def pause_app_service(self, req):
+    rospy.loginfo("WallframeAppManager: Service Call to PAUSE ["+req.app_id+"]")
+    return self.request_app(req.app_id, "pause")
+
+  def resume_app_service(self, req):
+    rospy.loginfo("WallframeAppManager: Service Call to RESUME ["+req.app_id+"]")
+    return self.request_app(req.app_id, "resume")
+
+  def request_app(self, app_id, command):
+    rospy.loginfo("WallframeAppManager: Service Call ******************* ["+app_id+"]")
+    app_request = request_app_msg()
+    app_request.command = command
+    app_request.app_id = app_id
+    self.request_app_pub_.publish(app_request)
+    return True
+
+#  def close_app_service(self, req):
+    #message = "WallframeAppManager: Service Call to CLOSE APP ["+req.app_id+"]"
+    #if req.app_id in self.active_apps.keys():
+      #rospy.logwarn(message + "SUCCESS")
+      #self.close_app(req.app_id)
+      #return "CLOSE APP -- SUCCESS"
+    #else:
+      #rospy.logwarn(message + "FAILED -- App not running")
+      #return "CLOSE APP -- FAIL -- App not running"
 
 
   def close_all_apps_service(self,req):

@@ -202,7 +202,7 @@ class AppMenu(WallframeAppWidget):
     self.setWindowTitle("Wallframe Main Menu")
     self.box_layout_ = QHBoxLayout()
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-    #self.show()
+    self.show()
     self.resize(self.width_, self.height_)
     self.move(self.x_,self.y_)
     self.setLayout(self.box_layout_)
@@ -221,10 +221,7 @@ class AppMenu(WallframeAppWidget):
 
     self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click", "")
 
-    # Launch the screensaver
-    #self.load_app(self.default_app_id_)
-    #self.current_app_id = self.default_app_id_
-    #self.hide()
+
 
   def check_ok(self):
     if rospy.is_shutdown():
@@ -322,63 +319,56 @@ class AppMenu(WallframeAppWidget):
   def user_event_cb(self, msg):
     if self.run_:
       ### Workspace Events ###
-      # There is no user in front of the wall
-      print msg.event_id
-      print msg.message
       if msg.event_id == 'workspace_event':
-        # if there are no users then kill the current app and launch the screen
-        # saver and the current app is not the screen saver
-        if msg.message == "all_users_left":
-          print "ALL USER LEFT"
-        if msg.message == 'all_users_left' :
-          rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should start default app")
-          if self.current_app_id:
-              self.terminate_app(self.current_app_id)
 
-          # resume the screen saver
-          self.load_app(self.default_app_id_)
-          #self.resume_app(self.default_app_id_)
-          self.signal_hide_.emit()
+        # if the screen saver is on
+        if self.screensaver_:
+          if msg.message == 'all_users_left' and self.current_app_id != self.default_app_id_:
+            rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should start default app")
+            if self.current_app_id:
+                #self.signal_show_.emit()
+                self.terminate_app(self.current_app_id)
+            #self.load_app(self.default_app_id_, default=True)
+            # resume the screen saver
+            self.resume_app(self.default_app_id_)
+        else:
+          if msg.message == 'all_users_left':
+            rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should close app and show menu")
+            self.toast_pub_.publish(String('Closing All Apps'))
+            self.signal_show_.emit()
+            self.close_all_apps()
+            # If close all apps is successful, show menu
 
       ### User Events ###
-      ## There is some user in front of the wall
       if msg.event_id == 'hand_event' and msg.user_id == self.focused_user_id_:
-
-        if msg.message == 'hands_on_head':
+        # Hands on head to quit app
+        if msg.message == 'hands_on_head' and self.hidden_ == True:
           rospy.logdebug("WallframeMenu: HANDS_HEAD received, should resume menu")
-          self.toast_pub_.publish(String('Closing ' + self.app_ids_[self.current_app_id]))
-          self.signal_show_.emit()
-          #self.hidden_ = False
+          self.toast_pub_.publish(String('Closing All Apps'))
+          rospy.wait_for_service('wallframe/core/app_manager/close_all_apps')
+          #self.signal_show_.emit()
 
-          # if the current app is not the screen saver terminate it else pause
-          # it
-          if self.current_app_id != self.default_app_id_:
+          if self.current_app_id:
             self.terminate_app(self.current_app_id)
-          else:
-            self.terminate_app(self.current_app_id)
-            #self.pause_app(self.current_app_id)
-          self.current_app_id = ""
+            self.current_app_id = ""
 
+          # resume the screen saver
+          self.resume_app(self.default_app_id_)
 
         # Click to start app
         if msg.message == 'left_elbow_click':
-          # if there is no app running then get the click
-          if not self.current_app_id:
+          print "captured left_elbow_click"
+          if self.hidden_ == False:
+            print msg.message
             rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
             self.tileflow_widget.click()
 
 
   def clicked_on(self, ind):
     print "clicked on " + self.app_menu_items_[ind]
-    app_id = self.app_menu_items_[ind]
-    if app_id != self.default_app_id_:
-      self.load_app(app_id)
-    else:
-      self.load_app(app_id)
-      #self.resume_app(app_id)
-    self.current_app_id = app_id
+    self.load_app(self.app_menu_items_[ind])
 
-  def load_app(self, app_id):
+  def load_app(self, app_id, default=False):
     self.show_tooltip("tooltip_menu", "Loading...", "")
     self.toast_pub_.publish(String('Loading App ' + self.app_ids_[app_id]))
 
@@ -387,8 +377,9 @@ class AppMenu(WallframeAppWidget):
     try:
       self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
                                              wallframe_core.srv.load_app)
-      ret_success = self.srv_load_app(app_id)
-      #self.current_app_id = app_id
+      ret_success = self.srv_load_app(app_id, default)
+      print ret_success
+      self.current_app_id = app_id
       self.toast_pub_.publish(String(self.app_ids_[app_id] + " running"))
       self.show_tooltip("tooltip_menu", "Place hands on head to show menu", "")
     except rospy.ServiceException, e:
@@ -403,30 +394,6 @@ class AppMenu(WallframeAppWidget):
       ret_success = self.srv_terminate_app(app_id)
       self.current_app_id = ""
       self.toast_pub_.publish(String(self.app_ids_[app_id] + ' Closed'))
-    except rospy.ServiceException, e:
-      rospy.logerr("Service call failed: %s" % e)
-
-  def pause_app(self, app_id):
-    self.toast_pub_.publish(String("Pausing " + self.app_ids_[app_id]))
-    rospy.wait_for_service("wallframe/core/app_manager/pause_app")
-    try:
-      self.srv_pause_app = rospy.ServiceProxy('wallframe/core/app_manager/pause_app',
-                                              wallframe_core.srv.pause_app)
-      ret_success = self.srv_pause_app(app_id)
-      self.current_app_id = ""
-      self.toast_pub_.publish(String(self.app_ids_[app_id] + ' Paused'))
-    except rospy.ServiceException, e:
-      rospy.logerr("Service call failed: %s" % e)
-
-  def resume_app(self, app_id):
-    self.toast_pub_.publish(String("Resuming " + self.app_ids_[app_id]))
-    rospy.wait_for_service("wallframe/core/app_manager/resume_app")
-    try:
-      self.srv_resume_app = rospy.ServiceProxy('wallframe/core/app_manager/resume_app',
-                                              wallframe_core.srv.resume_app)
-      ret_success = self.srv_resume_app(app_id)
-      self.current_app_id = app_id
-      self.toast_pub_.publish(String(self.app_ids_[app_id] + ' Resumed'))
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 

@@ -50,14 +50,14 @@ namespace wallframe{
   class WallframeAppBaseQt : public QWidget, public WallframeAppBase {
     Q_OBJECT // must include to use Qt signals and slots
   public:
-    WallframeAppBaseQt(std::string app_name, ros::NodeHandle nh, int event_deque_size);
+    WallframeAppBaseQt(std::string app_name, ros::NodeHandle nh, int event_deque_size , std::string app_id);
     ~WallframeAppBaseQt(){};
     // Virtual Methods
     virtual bool build() = 0;
     virtual bool start() = 0;
-    virtual bool stop() = 0;
-    virtual bool pause() = 0;
-    virtual bool resume() = 0;
+    virtual bool stop();
+    virtual bool pause();
+    virtual bool resume();
   public Q_SLOTS:
     void checkRosOk();
   protected:

@@ -48,6 +48,7 @@
 #include <wallframe_msgs/WallframeUserArray.h>
 #include <wallframe_msgs/WallframeUserEvent.h>
 #include <wallframe_msgs/WallframeUser.h>
+#include <wallframe_msgs/WallframeRequestApp.h>
 // TF and EIGEN
 #include <tf_conversions/tf_eigen.h>
 
@@ -106,7 +107,7 @@ namespace wallframe{
 
   class WallframeAppBase{
   public:
-    WallframeAppBase(std::string app_name, ros::NodeHandle nh, int event_deque_size);
+    WallframeAppBase(std::string app_name, ros::NodeHandle nh, int event_deque_size, std::string app_id );
     ~WallframeAppBase(){};
 
     void userStateCallback(const wallframe_msgs::WallframeUserArrayConstPtr &user_packet);
@@ -114,6 +115,9 @@ namespace wallframe{
     void wallframeEventCallback(const std_msgs::StringConstPtr &wallframe_event);
     void updateUserData();
     bool getFocusedUser(AppUser& u);
+
+    void requestAppCallback(const wallframe_msgs::WallframeRequestAppConstPtr &request_app);
+    
     // Virtual Methods
     virtual bool build() = 0;
     virtual bool start() = 0;
@@ -127,13 +131,20 @@ namespace wallframe{
     int x_,y_,width_,height_;
     double height_perc_;
     unsigned int deque_size_;
+  
+    // App id is unique identifier for every app
+    std::string app_id_;
+    // app name is the user friendly name of the app    
     std::string name_;
     int num_users_, focused_user_id_;
     AppUserMap users_;
     std::vector<int> active_user_ids_;
+    
     ros::Subscriber user_state_subscriber_;
     ros::Subscriber user_event_subscriber_;
     ros::Subscriber wallframe_event_subscriber_;
+    ros::Subscriber request_app_subscriber_;
+
     ros::Publisher debug_publisher_;
     ros::Publisher toast_publisher_;
     wallframe_msgs::WallframeUserArray current_user_packet_;
