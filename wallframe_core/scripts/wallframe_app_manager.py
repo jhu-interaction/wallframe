@@ -34,8 +34,13 @@
 #####################################################################
 
 ###
-# Authors: Yifan Ge, Kelleher Guerin, Vineeta Khatuja
+# Authors: Yifan Ge, Vineeta Khatuja
 # Johns Hopkins University
+#
+# AppManager
+# 1) Reads the menu.cfg file and sets the ros parameters
+# 2) It provides the load , terminate , pause and resume app services
+# These services are used by the menu
 ###
 
 import roslib; roslib.load_manifest('wallframe_core')
