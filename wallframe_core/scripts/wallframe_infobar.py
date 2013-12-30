@@ -97,6 +97,7 @@ class UserTag(QWidget):
     self.y_ratio = abs(self.workspace_limits[2] - self.workspace_limits[3]) // self.height_ + 2
     self.setStyleSheet("background-color:#ffffff;color:#222222")
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+    self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
     self.show()
     #self.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.SmoothPixmapTransform)
     self.setAutoFillBackground(True)

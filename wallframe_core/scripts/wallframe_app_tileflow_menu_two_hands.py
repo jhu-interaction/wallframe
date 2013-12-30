@@ -202,7 +202,7 @@ class AppMenu(WallframeAppWidget):
     self.setWindowTitle("Wallframe Main Menu")
     self.box_layout_ = QHBoxLayout()
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-    #self.show()
+    self.show()
     self.resize(self.width_, self.height_)
     self.move(self.x_,self.y_)
     self.setLayout(self.box_layout_)
@@ -221,10 +221,10 @@ class AppMenu(WallframeAppWidget):
 
     self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click", "")
 
-    # Launch the screensaver
-    #self.load_app(self.default_app_id_)
-    #self.current_app_id = self.default_app_id_
     #self.hide()
+    # Launch the screensaver
+    self.load_app(self.default_app_id_)
+    self.current_app_id = ""
 
   def check_ok(self):
     if rospy.is_shutdown():
@@ -319,53 +319,104 @@ class AppMenu(WallframeAppWidget):
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
-  def user_event_cb(self, msg):
+# TODO update the toast notifications
+  def user_event_cb(self,msg):
+    print msg.event_id
+    print msg.message
     if self.run_:
-      ### Workspace Events ###
-      # There is no user in front of the wall
-      print msg.event_id
-      print msg.message
       if msg.event_id == 'workspace_event':
-        # if there are no users then kill the current app and launch the screen
-        # saver and the current app is not the screen saver
         if msg.message == "all_users_left":
-          print "ALL USER LEFT"
-        if msg.message == 'all_users_left' :
-          rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should start default app")
-          if self.current_app_id:
-              self.terminate_app(self.current_app_id)
+          # terminate the current running app
+          self.terminate_app(self.current_app_id)
 
-          # resume the screen saver
-          self.load_app(self.default_app_id_)
-          #self.resume_app(self.default_app_id_)
+
+
+
+          # hide the menu
           self.signal_hide_.emit()
 
-      ### User Events ###
-      ## There is some user in front of the wall
+          # resume the screen saver
+          self.resume_app(self.default_app_id_)
+
+          self.current_app_id = ""
+          #return
+
       if msg.event_id == 'hand_event' and msg.user_id == self.focused_user_id_:
-
         if msg.message == 'hands_on_head':
-          rospy.logdebug("WallframeMenu: HANDS_HEAD received, should resume menu")
-          self.toast_pub_.publish(String('Closing ' + self.app_ids_[self.current_app_id]))
-          self.signal_show_.emit()
-          #self.hidden_ = False
+          # terminate the current running app
+          self.terminate_app(self.current_app_id)
 
-          # if the current app is not the screen saver terminate it else pause
-          # it
-          if self.current_app_id != self.default_app_id_:
-            self.terminate_app(self.current_app_id)
-          else:
-            self.terminate_app(self.current_app_id)
-            #self.pause_app(self.current_app_id)
+          # pause the screen saver
+          self.pause_app(self.default_app_id_);
+
+          # show the menu
+          self.signal_show_.emit()
           self.current_app_id = ""
 
+        if msg.message == 'hands_together':
+          # terminate the current running app
+          self.terminate_app(self.current_app_id)
 
-        # Click to start app
-        if msg.message == 'left_elbow_click':
-          # if there is no app running then get the click
-          if not self.current_app_id:
-            rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
-            self.tileflow_widget.click()
+          # pause the screen saver
+          self.pause_app(self.default_app_id_);
+
+          # launch the app
+          rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
+          self.tileflow_widget.click()
+
+          # TODO ideally we should hide the menu only after the launching of
+          # app is complete else default screen is shown for
+          # hide the menu
+          self.signal_hide_.emit()
+
+
+  #def user_event_cb(self, msg):
+    #if self.run_:
+      #### Workspace Events ###
+      ## There is no user in front of the wall
+      #print msg.event_id
+      #print msg.message
+      #if msg.event_id == 'workspace_event':
+        ## if there are no users then kill the current app and launch the screen
+        ## saver and the current app is not the screen saver
+        #if msg.message == "all_users_left":
+          #print "ALL USER LEFT"
+        #if msg.message == 'all_users_left' :
+          #rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should start default app")
+          #if self.current_app_id:
+              #self.terminate_app(self.current_app_id)
+
+          ## resume the screen saver
+          #self.load_app(self.default_app_id_)
+          ##self.resume_app(self.default_app_id_)
+          #self.signal_hide_.emit()
+
+      #### User Events ###
+      ### There is some user in front of the wall
+      #if msg.event_id == 'hand_event' and msg.user_id == self.focused_user_id_:
+
+        #if msg.message == 'hands_on_head':
+          #rospy.logdebug("WallframeMenu: HANDS_HEAD received, should resume menu")
+          #self.toast_pub_.publish(String('Closing ' + self.app_ids_[self.current_app_id]))
+          #self.signal_show_.emit()
+          ##self.hidden_ = False
+
+          ## if the current app is not the screen saver terminate it else pause
+          ## it
+          #if self.current_app_id != self.default_app_id_:
+            #self.terminate_app(self.current_app_id)
+          #else:
+            #self.terminate_app(self.current_app_id)
+            ##self.pause_app(self.current_app_id)
+          #self.current_app_id = ""
+
+
+        ## Click to start app
+        #if msg.message == 'left_elbow_click':
+          ## if there is no app running then get the click
+          #if not self.current_app_id:
+            #rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
+            #self.tileflow_widget.click()
 
 
   def clicked_on(self, ind):
@@ -395,6 +446,10 @@ class AppMenu(WallframeAppWidget):
       rospy.logerr("Service call failed: %s" % e)
 
   def terminate_app(self, app_id):
+    if not app_id:
+      print "Terminate App app_id empty"
+      return
+
     self.toast_pub_.publish(String("Closing " + self.app_ids_[app_id]))
     rospy.wait_for_service("wallframe/core/app_manager/terminate_app")
     try:

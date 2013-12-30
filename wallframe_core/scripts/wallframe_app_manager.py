@@ -87,12 +87,12 @@ class WallframeAppManager():
     rospy.logwarn("WallframeAppManager: Service Ready [ terminate_app ]")
 
     # pause the app
-    #self.pause_app_srv_ = rospy.Service('app_manager/pause_app', wallframe_core.srv.pause_app, self.pause_app_service)
-    #rospy.logwarn("WallframeAppManager: Service Ready [ pause_app ]")
+    self.pause_app_srv_ = rospy.Service('app_manager/pause_app', wallframe_core.srv.pause_app, self.pause_app_service)
+    rospy.logwarn("WallframeAppManager: Service Ready [ pause_app ]")
 
     ## resume the app
-    #self.resume_app_srv_ = rospy.Service('app_manager/resume_app', wallframe_core.srv.resume_app, self.resume_app_service)
-    #rospy.logwarn("WallframeAppManager: Service Ready [ resume_app ]")
+    self.resume_app_srv_ = rospy.Service('app_manager/resume_app', wallframe_core.srv.resume_app, self.resume_app_service)
+    rospy.logwarn("WallframeAppManager: Service Ready [ resume_app ]")
 
     # TODO remove this later
     self.close_all_apps_srv_ = rospy.Service('app_manager/close_all_apps', wallframe_core.srv.close_all_apps, self.close_all_apps_service)
@@ -244,7 +244,13 @@ class WallframeAppManager():
       app_package_path = os.path.dirname(config_full_path)
       app_package_name = os.path.basename(app_package_path)
       app_launch_file_name = os.path.basename(app_launch_path)
-      available_app_list[app_id] = app_package_path
+
+      # Probably this is not the best way to do this
+      # We do not want to add the screen saver to the available apps for menu
+      if app_id != "screensaver":
+        available_app_list[app_id] = app_package_path
+
+
       app_ids[app_id] = app_name
       launch_file = {"launch_name": app_launch_file_name, "package_name": app_package_name}
       rospy.logwarn("Package: " + app_package_name + " Launch: " + app_launch_file_name)
