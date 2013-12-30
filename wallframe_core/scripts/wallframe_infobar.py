@@ -294,8 +294,8 @@ class WallframeInfobar(QWidget):
 
   def update_tag(self,uid):
     # Make sure uid is known 
-    #if uid not in self.user_tags_ or uid not in self.users_:
-    #  return
+    if uid not in self.user_tags_ or uid not in self.users_:
+      return
 
     tag = self.user_tags_[uid]
     # userx = self.users_[user_id].translations_mm[joint_id].x
