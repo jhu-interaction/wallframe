@@ -122,12 +122,18 @@ class UserTag(QWidget):
 
   def update_mini_skel(self, xpos):
     self.activateWindow()
-    for j_name, j_id in self.joints_.items():
-      joint_x = self.get_joint(j_name).x
-      joint_y = self.get_joint(j_name).y
-      torso_x = self.get_joint('torso').x
-      joint_lbl = self.joint_labels_[j_name]
-      self.draw_joint_lbl(j_id, torso_x, joint_x, -joint_y, joint_lbl)
+
+    # TODO: get_joint will often return a KeyError when a user leaves
+
+    try:
+      for j_name, j_id in self.joints_.items():
+        joint_x = self.get_joint(j_name).x
+        joint_y = self.get_joint(j_name).y
+        torso_x = self.get_joint('torso').x
+        joint_lbl = self.joint_labels_[j_name]
+        self.draw_joint_lbl(j_id, torso_x, joint_x, -joint_y, joint_lbl)
+    except KeyError:
+      pass
 
     self.move(xpos+self.parent_.wall_x_,self.y_)
     pass
@@ -287,9 +293,9 @@ class WallframeInfobar(QWidget):
     pass
 
   def update_tag(self,uid):
-    # Make sure uid is valid
-    if uid >= len(self.user_tags_) or uid >= len(self.users_) or uid < 0:
-      return
+    # Make sure uid is known 
+    #if uid not in self.user_tags_ or uid not in self.users_:
+    #  return
 
     tag = self.user_tags_[uid]
     # userx = self.users_[user_id].translations_mm[joint_id].x
