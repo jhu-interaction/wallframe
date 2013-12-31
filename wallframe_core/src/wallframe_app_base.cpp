@@ -40,11 +40,12 @@
 
 namespace wallframe{
 
-	WallframeAppBase::WallframeAppBase(std::string app_name, ros::NodeHandle nh, int event_deque_size = 10){  
+	WallframeAppBase::WallframeAppBase(std::string app_name, ros::NodeHandle nh, int event_deque_size = 10  ,std::string app_id = ""){  
     node_ = nh;
     name_ = app_name;
     deque_size_ = event_deque_size;
     initBaseApp();
+    app_id_ = app_id;
 	}
 
   //! Initializes the base application,
@@ -58,11 +59,17 @@ namespace wallframe{
     // Initialize User Listeners
     user_state_subscriber_ = node_.subscribe("/wallframe/users/state", 1000, &WallframeAppBase::userStateCallback, this);
     user_event_subscriber_ = node_.subscribe("/wallframe/users/events", 1000, &WallframeAppBase::userEventCallback, this);
+
+    request_app_subscriber_ = node_.subscribe("/app/request", 1000, &WallframeAppBase::requestAppCallback, this);
+
     // Wallframe Event Listener
     wallframe_event_subscriber_ = node_.subscribe("/wallframe/events", 1000, &WallframeAppBase::wallframeEventCallback, this);
     // Publishers for outgoing messages
     toast_publisher_ = node_.advertise<std_msgs::String>("/wallframe/info/toast", 1000);
     debug_publisher_ = node_.advertise<std_msgs::String>("/wallframe/info/debug", 1000);
+
+    app_event_publisher_ = node_.advertise<wallframe_msgs::WallframeAppEvent>("/app/event",1000);
+
 
     // Get Container Widget Params
     if (!node_.getParam("/wallframe/core/params/x", x_)){
@@ -90,6 +97,7 @@ namespace wallframe{
         name_.c_str(), node_.getNamespace().c_str());
       return false;
     }
+
 
     ROS_WARN_STREAM("WallframeAppBase: App Dimensions are ["<<width_<<","<<height_<<"]");
     ROS_WARN_STREAM("WallframeAppBase: Height Percentage set to " << height_perc_);
@@ -120,7 +128,27 @@ namespace wallframe{
       user_event_deque_.pop_back();
     }
   }
+void WallframeAppBase::requestAppCallback(const wallframe_msgs::WallframeRequestAppConstPtr &request_app){
 
+    if(!request_app)
+      return;
+
+
+    if(request_app->app_id == this->app_id_){
+    
+      if(request_app-> command == "terminate"){
+        this->stop();
+      }
+      else if(request_app-> command == "pause"){
+        this->pause();
+      }
+      else if(request_app-> command == "resume"){
+        this->resume(); 
+      }
+ 
+    }
+
+}
   //! Callback for wallframe events, not implemented yet
   void WallframeAppBase::wallframeEventCallback(const std_msgs::StringConstPtr &wallframe_event){
   }

@@ -43,7 +43,7 @@ namespace wallframe{
   /*!
     This class inherits the WallframeAppBase and also provides a parent Qt widget which will be resized to the specified size of the wall in the launch file
   */
-  WallframeAppBaseQt::WallframeAppBaseQt(std::string app_name, ros::NodeHandle nh, int event_deque_size = 10): WallframeAppBase(app_name,nh,event_deque_size)
+  WallframeAppBaseQt::WallframeAppBaseQt(std::string app_name, ros::NodeHandle nh, int event_deque_size ,std::string app_id ): WallframeAppBase(app_name,nh,event_deque_size,app_id)
   {  
     // Build Widget
     this->setWindowFlags(Qt::FramelessWindowHint);
@@ -67,4 +67,33 @@ namespace wallframe{
     }
   }
 
-} // end namespace wallframe
+  bool WallframeAppBaseQt::stop(){
+    qApp->quit();
+    wallframe_msgs::WallframeAppEvent app_event_msg;
+    app_event_msg.status = "terminated";
+    app_event_msg.app_id = app_id_;
+    app_event_publisher_.publish(app_event_msg);
+
+      return true;
+  }
+
+  
+  bool WallframeAppBaseQt::pause(){
+    this->hide();
+    return true;
+  } // end namespace wallframe
+
+  bool WallframeAppBaseQt::resume(){
+    this->show();
+    return true;
+  } // end namespace wallframe
+
+  void  WallframeAppBaseQt::ready(){
+    wallframe_msgs::WallframeAppEvent app_event_msg;
+    app_event_msg.status = "ready";
+    app_event_msg.app_id = app_id_;
+    app_event_publisher_.publish(app_event_msg);
+
+  } 
+
+}

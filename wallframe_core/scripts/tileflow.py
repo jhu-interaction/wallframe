@@ -59,7 +59,6 @@ class TileflowWidget(QtOpenGL.QGLWidget):
 
         self.first_tile = self.make_tiles()
 
-
     def make_tiles(self):
         ind = list_start = GL.glGenLists(len(self.res_list))
 
@@ -81,7 +80,7 @@ class TileflowWidget(QtOpenGL.QGLWidget):
 
             GL.glTranslatef(0, -2.0, 0)
             GL.glScalef(1, -1, 1)
-            GL.glColor4f(1, 1, 1, 0.5)
+            GL.glColor4f(1, 1, 1, 0.3)
 
             GL.glBegin(GL.GL_QUADS)
             GL.glTexCoord2d(1, 0)

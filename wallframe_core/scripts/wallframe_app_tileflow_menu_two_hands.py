@@ -59,6 +59,7 @@ from PySide import QtCore
 from wallframe_msgs.msg import WallframeUser
 from wallframe_msgs.msg import WallframeUserArray
 from wallframe_msgs.msg import WallframeUserEvent
+from wallframe_msgs.msg import WallframeAppEvent
 from wallframe_extra.msg import WallframeMouseState
 # srv
 import wallframe_core
@@ -67,7 +68,7 @@ from wallframe_core.srv import *
 from tileflow import TileflowWidget
 
 class AppMenu(WallframeAppWidget):
-  Y_THRES = 300
+  Y_THRES = 50
   X_LONG_THRES = 80
   X_MID_THRES = 80
   X_SHORT_THRES = 30
@@ -93,6 +94,9 @@ class AppMenu(WallframeAppWidget):
     self.current_app_id = ""
     self.current_user = None
     self.state = "IDLE" #IDLE LEFT RIGHT
+    # flag to check if the menu is active
+    self.is_active = False
+    self.app_launched = False
 
     self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
     # ROS
@@ -107,9 +111,11 @@ class AppMenu(WallframeAppWidget):
                                             WallframeUserEvent,
                                             self.user_event_cb)
 
-    self.mouse_state_sub = rospy.Subscriber("/wallframe/extra/mousestate",
-                                            WallframeMouseState,
-                                            self.mouse_state_cb)
+    self.app_event_sub_ = rospy.Subscriber("/app/event",
+                                            WallframeAppEvent,
+                                            self.app_event_cb)
+
+
     self.toast_pub_ = rospy.Publisher("/wallframe/info/toast", String)
 
     # ---- ROS get params -----
@@ -221,7 +227,10 @@ class AppMenu(WallframeAppWidget):
 
     self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click", "")
 
-
+    #self.hide()
+    # Launch the screensaver
+    self.load_app(self.default_app_id_)
+    self.current_app_id = ""
 
   def check_ok(self):
     if rospy.is_shutdown():
@@ -239,7 +248,7 @@ class AppMenu(WallframeAppWidget):
     self.cur_ind_y_ = 0
     self.grid_set_up_ = True
 
-
+#TODO this function should be in utilies
   def convert_workspace(self,user_pos):
     screen_pos = []
     x_min = self.workspace_limits_[0]
@@ -272,7 +281,6 @@ class AppMenu(WallframeAppWidget):
     self.tileflow_widget = TileflowWidget(self, res_list)
     self.box_layout_.addWidget(self.tileflow_widget)
     self.app_menu_items_ = [item[0] for item in self.app_paths_.items()]
-    print self.app_menu_items_
 
   def user_state_cb(self, msg):
     if self.run_:
@@ -302,90 +310,119 @@ class AppMenu(WallframeAppWidget):
       else:
         self.current_user = self.users_[self.focused_user_id_]
 
-  def mouse_state_cb(self, msg):
-    if self.run_:
-      self.mouse_state = (msg.x, msg.y)
 
-  def close_all_apps(self):
-    rospy.wait_for_service('wallframe/core/app_manager/close_all_apps')
-    try:
-      self.srv_close_all_apps = rospy.ServiceProxy('wallframe/core/app_manager/close_all_apps',
-                                                   wallframe_core.srv.close_all_apps)
-      ret_success = self.srv_close_all_apps('none')
-      self.toast_pub_.publish(String('Apps Closed'))
-    except rospy.ServiceException, e:
-      rospy.logerr("Service call failed: %s" % e)
 
-  def user_event_cb(self, msg):
+  def activate_menu(self):
+    # show the menu
+    self.signal_show_.emit()
+
+  def deactivate_menu(self):
+    # hide the menu
+    self.signal_hide_.emit()
+
+  def app_event_cb(self,msg):
+    print "App event callback called "
+    self.app_launched = True
+
+  def user_event_cb(self,msg):
     if self.run_:
-      ### Workspace Events ###
       if msg.event_id == 'workspace_event':
+        if msg.message == "all_users_left":
+          # terminate the current running app
+          self.terminate_app(self.current_app_id)
 
-        if self.screensaver_:
-          if msg.message == 'all_users_left' and self.current_app_id != self.default_app_id_:
-            rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should start default app")
-            if self.current_app_id:
-                self.signal_show_.emit()
-                self.close_app(self.current_app_id)
-            self.load_app(self.default_app_id_, default=True)
-        else:
-          if msg.message == 'all_users_left':
-            rospy.logdebug("WallframeMenu: ALL_USERS_LEFT received, should close app and show menu")
-            self.toast_pub_.publish(String('Closing All Apps'))
-            self.signal_show_.emit()
-            self.close_all_apps()
-            # If close all apps is successful, show menu
+          self.deactivate_menu()
 
-      ### User Events ###
+          # resume the screen saver
+          self.resume_app(self.default_app_id_)
+
+          self.current_app_id = ""
+          #return
+
       if msg.event_id == 'hand_event' and msg.user_id == self.focused_user_id_:
-        # Hands on head to quit app
-        if msg.message == 'hands_on_head' and self.hidden_ == True:
-          rospy.logdebug("WallframeMenu: HANDS_HEAD received, should resume menu")
-          self.toast_pub_.publish(String('Closing All Apps'))
-          rospy.wait_for_service('wallframe/core/app_manager/close_all_apps')
-          self.signal_show_.emit()
-          if self.current_app_id:
-            self.close_app(self.current_app_id)
-            self.current_app_id = ""
-        # Click to start app
-        if msg.message == 'left_elbow_click':
-          print "captured left_elbow_click"
-          if self.hidden_ == False:
-            print msg.message
-            rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
-            self.tileflow_widget.click()
+        if msg.message == 'hands_on_head':
+          # terminate the current running app
+          self.terminate_app(self.current_app_id)
+
+          # pause the screen saver
+          self.pause_app(self.default_app_id_);
+          self.current_app_id = ""
+
+          self.activate_menu()
+
+        # if click gesture is detected and the menu is active
+        if msg.message == 'left_elbow_click' and self.is_active == True and self.current_app_id == "":
+
+          # launch the app
+          rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
+          self.tileflow_widget.click()
+
+          # The menu should not be deactivated until the app is ready
+          self.app_launched = False
+          while not self.app_launched:
+            #print "waiting"
+            pass
+          self.deactivate_menu()
+          self.app_launched = False
 
 
   def clicked_on(self, ind):
     print "clicked on " + self.app_menu_items_[ind]
-    self.load_app(self.app_menu_items_[ind])
+    app_id = self.app_menu_items_[ind]
+    self.load_app(app_id)
+    self.current_app_id = app_id
 
-  def load_app(self, app_id, default=False):
+  def load_app(self, app_id):
     self.show_tooltip("tooltip_menu", "Loading...", "")
     self.toast_pub_.publish(String('Loading App ' + self.app_ids_[app_id]))
 
-    self.signal_hide_.emit()
     rospy.wait_for_service('wallframe/core/app_manager/load_app')
     try:
       self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
                                              wallframe_core.srv.load_app)
-      ret_success = self.srv_load_app(app_id, default)
-      print ret_success
-      self.current_app_id = app_id
+      ret_success = self.srv_load_app(app_id)
+      #self.current_app_id = app_id
       self.toast_pub_.publish(String(self.app_ids_[app_id] + " running"))
       self.show_tooltip("tooltip_menu", "Place hands on head to show menu", "")
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
-  def close_app(self, app_id):
+  # TODO refactor to merge terminate / pause / resume services into one
+  def terminate_app(self, app_id):
+    if not app_id:
+      print "Terminate App app_id empty"
+      return
+
     self.toast_pub_.publish(String("Closing " + self.app_ids_[app_id]))
-    rospy.wait_for_service("wallframe/core/app_manager/close_app")
+    rospy.wait_for_service("wallframe/core/app_manager/terminate_app")
     try:
-      self.srv_close_app = rospy.ServiceProxy('wallframe/core/app_manager/close_app',
-                                              wallframe_core.srv.close_app)
-      ret_success = self.srv_close_app(app_id)
+      self.srv_terminate_app = rospy.ServiceProxy('wallframe/core/app_manager/terminate_app',
+                                              wallframe_core.srv.terminate_app)
+      ret_success = self.srv_terminate_app(app_id)
       self.current_app_id = ""
       self.toast_pub_.publish(String(self.app_ids_[app_id] + ' Closed'))
+    except rospy.ServiceException, e:
+      rospy.logerr("Service call failed: %s" % e)
+
+  def pause_app(self, app_id):
+    rospy.wait_for_service("wallframe/core/app_manager/pause_app")
+    try:
+      self.srv_pause_app = rospy.ServiceProxy('wallframe/core/app_manager/pause_app',
+                                              wallframe_core.srv.pause_app)
+      ret_success = self.srv_pause_app(app_id)
+      self.current_app_id = ""
+    except rospy.ServiceException, e:
+      rospy.logerr("Service call failed: %s" % e)
+
+  def resume_app(self, app_id):
+    #self.toast_pub_.publish(String("Resuming " + self.app_ids_[app_id]))
+    rospy.wait_for_service("wallframe/core/app_manager/resume_app")
+    try:
+      self.srv_resume_app = rospy.ServiceProxy('wallframe/core/app_manager/resume_app',
+                                              wallframe_core.srv.resume_app)
+      ret_success = self.srv_resume_app(app_id)
+      self.current_app_id = app_id
+      #self.toast_pub_.publish(String(self.app_ids_[app_id] + ' Resumed'))
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
@@ -410,7 +447,7 @@ class AppMenu(WallframeAppWidget):
     self.hide_tooltip_from_menu("tooltip_app")
     self.hide()
     self.update()
-    self.hidden_ = True
+    self.is_active = False
     rospy.logwarn("WallframeMenu: setting to hidden")
     pass
 
@@ -418,7 +455,7 @@ class AppMenu(WallframeAppWidget):
     self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click", "")
     self.show()
     self.update()
-    self.hidden_ = False
+    self.is_active = True
     rospy.logwarn("WallframeMenu: setting to visible")
     pass
 
@@ -462,36 +499,38 @@ class AppMenu(WallframeAppWidget):
 
 
   def check_for_right_swipe(self, prev_user, current_user):
-    dx = self.joint_position(current_user, 'left_hand').x - self.joint_position(prev_user, 'left_hand').x
+    if self.joint_position(prev_user, 'left_hand').x > self.joint_position(prev_user, 'torso').x:
+      dx = self.joint_position(current_user, 'left_hand').x - self.joint_position(prev_user, 'left_hand').x
 
-    if self.state == "RIGHT":
-      if -dx > self.X_SHORT_THRES:
-        self.state = "IDLE"
-    else:
-      if dx > self.X_LONG_THRES:
-        self.state = "RIGHT"
-        return "LONG_RIGHT_SWIPE"
+      if self.state == "RIGHT":
+        if -dx > self.X_SHORT_THRES:
+          self.state = "IDLE"
+      else:
+        if dx > self.X_LONG_THRES:
+          self.state = "RIGHT"
+          return "LONG_RIGHT_SWIPE"
 
-      elif dx > self.X_SHORT_THRES:
-        self.state = "RIGHT"
-        return "SHORT_RIGHT_SWIPE"
+        elif dx > self.X_SHORT_THRES:
+          self.state = "RIGHT"
+          return "SHORT_RIGHT_SWIPE"
     return None
 
 
 
   def check_for_left_swipe(self, prev_user, current_user):
-    dx = self.joint_position(prev_user, 'right_hand').x - self.joint_position(current_user, 'right_hand').x
+    if self.joint_position(prev_user, 'right_hand').x < self.joint_position(prev_user, 'torso').x:
+      dx = self.joint_position(prev_user, 'right_hand').x - self.joint_position(current_user, 'right_hand').x
 
-    if self.state == "LEFT":
-      if -dx > self.X_SHORT_THRES:
-        self.state = "IDLE"
-    else:
-      if dx > self.X_LONG_THRES:
-        self.state = "LEFT"
-        return "LONG_LEFT_SWIPE"
-      elif dx > self.X_SHORT_THRES:
-        self.state = "LEFT"
-        return "SHORT_LEFT_SWIPE"
+      if self.state == "LEFT":
+        if -dx > self.X_SHORT_THRES:
+          self.state = "IDLE"
+      else:
+        if dx > self.X_LONG_THRES:
+          self.state = "LEFT"
+          return "LONG_LEFT_SWIPE"
+        elif dx > self.X_SHORT_THRES:
+          self.state = "LEFT"
+          return "SHORT_LEFT_SWIPE"
     return None
 
   def validate_y_for_swipe(self, prev_hand_y, current_hand_y,user):
@@ -536,17 +575,10 @@ class AppMenu(WallframeAppWidget):
         elif gesture == "SHORT_LEFT_SWIPE":
           self.tileflow_widget.move_left(1)
 
-
-        #cursorx, cursory = self.get_cursor_position_sensor()
-        #cursor_position = self.convert_workspace([cursorx,cursory])
-
-        #self.tileflow_widget.update_cursor(cursor_position)
-
-      #cursorx, cursory = self.get_cursor_position_mouse()
-      #cursor_position = self.convert_workspace([cursorx,cursory])
-
-      #self.tileflow_widget.update_cursor(cursor_position)
-
+  # This is for testing with mouse
+  def mouse_state_cb(self, msg):
+    if self.run_:
+      self.mouse_state = (msg.x, msg.y)
 
 
   def run(self):
