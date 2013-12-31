@@ -119,9 +119,11 @@ class WallframeTooltip(QWidget):
     def hide_tooltip(self):
         self.hide()
     def show_tooltip(self, image_path):
-        #pixmap = QPixmap(image_path)
-        #self.text_label.setPixmap(pixmap)
-        self.text_label.setStyleSheet("background-image: url(" + image_path + "); background-attachment: fixed")
+        pixmap = QPixmap(image_path)
+        self.text_label.setPixmap(pixmap)
+        #movie = QMovie(image_path)
+        #self.text_label.setMovie(movie)
+        #movie.start()
         self.show()
     def update_tooltip_service(self, request):
         message = "WallframeTooltip: Service Call to update the text ["+request.app_id+"]"

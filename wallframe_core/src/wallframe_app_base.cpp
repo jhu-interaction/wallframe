@@ -68,6 +68,9 @@ namespace wallframe{
     toast_publisher_ = node_.advertise<std_msgs::String>("/wallframe/info/toast", 1000);
     debug_publisher_ = node_.advertise<std_msgs::String>("/wallframe/info/debug", 1000);
 
+    app_event_publisher_ = node_.advertise<wallframe_msgs::WallframeAppEvent>("/app/event",1000);
+
+
     // Get Container Widget Params
     if (!node_.getParam("/wallframe/core/params/x", x_)){
       ROS_ERROR("Wallframe%s: No x position on parameter server (namespace: %s)",

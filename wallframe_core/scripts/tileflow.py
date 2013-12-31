@@ -58,8 +58,6 @@ class TileflowWidget(QtOpenGL.QGLWidget):
             rospy.logwarn("after binding")
 
         self.first_tile = self.make_tiles()
-#        if self.parent:
-            #self.parent.hide()
 
     def make_tiles(self):
         ind = list_start = GL.glGenLists(len(self.res_list))

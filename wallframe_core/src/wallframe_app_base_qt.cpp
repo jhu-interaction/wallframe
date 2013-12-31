@@ -68,7 +68,12 @@ namespace wallframe{
   }
 
   bool WallframeAppBaseQt::stop(){
-      qApp->quit();
+    qApp->quit();
+    wallframe_msgs::WallframeAppEvent app_event_msg;
+    app_event_msg.status = "terminated";
+    app_event_msg.app_id = app_id_;
+    app_event_publisher_.publish(app_event_msg);
+
       return true;
   }
 
@@ -83,5 +88,12 @@ namespace wallframe{
     return true;
   } // end namespace wallframe
 
+  void  WallframeAppBaseQt::ready(){
+    wallframe_msgs::WallframeAppEvent app_event_msg;
+    app_event_msg.status = "ready";
+    app_event_msg.app_id = app_id_;
+    app_event_publisher_.publish(app_event_msg);
+
+  } 
 
 }

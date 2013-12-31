@@ -58,6 +58,8 @@ namespace wallframe{
     virtual bool stop();
     virtual bool pause();
     virtual bool resume();
+    virtual void ready();
+
   public Q_SLOTS:
     void checkRosOk();
   protected:

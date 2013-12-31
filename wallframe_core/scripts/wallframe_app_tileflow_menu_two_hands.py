@@ -59,6 +59,7 @@ from PySide import QtCore
 from wallframe_msgs.msg import WallframeUser
 from wallframe_msgs.msg import WallframeUserArray
 from wallframe_msgs.msg import WallframeUserEvent
+from wallframe_msgs.msg import WallframeAppEvent
 from wallframe_extra.msg import WallframeMouseState
 # srv
 import wallframe_core
@@ -95,6 +96,7 @@ class AppMenu(WallframeAppWidget):
     self.state = "IDLE" #IDLE LEFT RIGHT
     # flag to check if the menu is active
     self.is_active = False
+    self.app_launched = False
 
     self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
     # ROS
@@ -109,9 +111,11 @@ class AppMenu(WallframeAppWidget):
                                             WallframeUserEvent,
                                             self.user_event_cb)
 
-    self.mouse_state_sub = rospy.Subscriber("/wallframe/extra/mousestate",
-                                            WallframeMouseState,
-                                            self.mouse_state_cb)
+    self.app_event_sub_ = rospy.Subscriber("/app/event",
+                                            WallframeAppEvent,
+                                            self.app_event_cb)
+
+
     self.toast_pub_ = rospy.Publisher("/wallframe/info/toast", String)
 
     # ---- ROS get params -----
@@ -316,6 +320,10 @@ class AppMenu(WallframeAppWidget):
     # hide the menu
     self.signal_hide_.emit()
 
+  def app_event_cb(self,msg):
+    print "App event callback called "
+    self.app_launched = True
+
   def user_event_cb(self,msg):
     if self.run_:
       if msg.event_id == 'workspace_event':
@@ -343,20 +351,19 @@ class AppMenu(WallframeAppWidget):
           self.activate_menu()
 
         # if click gesture is detected and the menu is active
-        if msg.message == 'left_elbow_click' and self.is_active == True:
-          # terminate the current running app
-          self.terminate_app(self.current_app_id)
-
-          # pause the screen saver
-          self.pause_app(self.default_app_id_);
+        if msg.message == 'left_elbow_click' and self.is_active == True and self.current_app_id == "":
 
           # launch the app
           rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
           self.tileflow_widget.click()
 
-          # TODO ideally we should hide the menu only after the launching of
-          # app is complete else default screen is shown for
+          # The menu should not be deactivated until the app is ready
+          self.app_launched = False
+          while not self.app_launched:
+            #print "waiting"
+            pass
           self.deactivate_menu()
+          self.app_launched = False
 
 
   def clicked_on(self, ind):
@@ -369,7 +376,6 @@ class AppMenu(WallframeAppWidget):
     self.show_tooltip("tooltip_menu", "Loading...", "")
     self.toast_pub_.publish(String('Loading App ' + self.app_ids_[app_id]))
 
-    self.signal_hide_.emit()
     rospy.wait_for_service('wallframe/core/app_manager/load_app')
     try:
       self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',

@@ -49,6 +49,7 @@
 #include <wallframe_msgs/WallframeUserEvent.h>
 #include <wallframe_msgs/WallframeUser.h>
 #include <wallframe_msgs/WallframeRequestApp.h>
+#include <wallframe_msgs/WallframeAppEvent.h>
 // TF and EIGEN
 #include <tf_conversions/tf_eigen.h>
 
@@ -124,6 +125,7 @@ namespace wallframe{
     virtual bool stop() = 0;
     virtual bool pause() = 0;
     virtual bool resume() = 0;
+    virtual void ready() = 0;
   private:
     bool initBaseApp();
   protected:
@@ -147,9 +149,12 @@ namespace wallframe{
 
     ros::Publisher debug_publisher_;
     ros::Publisher toast_publisher_;
+    ros::Publisher app_event_publisher_;
+
     wallframe_msgs::WallframeUserArray current_user_packet_;
     std::vector<wallframe_msgs::WallframeUser> user_data_;
     wallframe_msgs::WallframeUserEvent current_user_event_;
+    wallframe_msgs::WallframeAppEvent app_event_;
     std::deque<wallframe_msgs::WallframeUserEvent> user_event_deque_;
   };
 
