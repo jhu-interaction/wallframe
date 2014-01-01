@@ -32,9 +32,9 @@ class TileflowWidget(QtOpenGL.QGLWidget):
         self.current_direction = 0 # -1: left 1: right 0:empty
         self.offset = self.target = self.target_offset = 3
         self.state = "IDLE" # LEFT, RIGHT, LEFT_DELAY, RIGHT_DELAY
-        focus_tile_timer = QtCore.QTimer(self)
-        focus_tile_timer.timeout.connect(self.focus_tile)
-        focus_tile_timer.start(20)
+        self.focus_tile_timer = QtCore.QTimer(self)
+        self.focus_tile_timer.timeout.connect(self.focus_tile)
+        self.focus_tile_timer.start(20)
 
 
     def set_resources(self, res_list):
