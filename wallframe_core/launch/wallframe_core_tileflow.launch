@@ -46,15 +46,15 @@
           name: tooltip_app
           width_percentage: 0.2
           height_percentage: 0.08
-          x_percentage: 0.7
+          x_percentage: 0.4
           y_percentage: 0.05
       wallframe_menu_tooltip:
         params:
           name: tooltip_menu
           width_percentage: 0.2
           height_percentage: 0.08
-          x_percentage: 0.7
-          y_percentage: 0.95
+          x_percentage: 0.4
+          y_percentage: 1
   </rosparam>
 
 

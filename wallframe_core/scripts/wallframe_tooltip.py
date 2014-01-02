@@ -77,7 +77,7 @@ class WallframeTooltip(QWidget):
         self.height = rospy.get_param("/wallframe/" + self.node_name + "/params/height_percentage", 0.08) * self.wall_height
         self.width = rospy.get_param("/wallframe/" + self.node_name + "/params/width_percentage", 0.2) * self.wall_width
 
-        self.x_position = rospy.get_param("/wallframe/"+ self.node_name + "/params/x_percentage", 0.7) * self.wall_width + self.x
+        self.x_position = rospy.get_param("/wallframe/"+ self.node_name + "/params/x_percentage", 0.8) * self.wall_width + self.x
         self.y_position = rospy.get_param("/wallframe/" + self.node_name + "/params/y_percentage", 0.05) * self.wall_height + self.y
         self.name = rospy.get_param("/wallframe/" + self.node_name + "/params/name")
         self.assets_path = rospy.get_param("/wallframe/core/tooltip/assets")
@@ -96,6 +96,7 @@ class WallframeTooltip(QWidget):
 
 
         self.text_label = QLabel('Welcome')
+        self.text_label.setFixedSize(self.width, self.height)
         layout = QHBoxLayout()
         layout.addWidget(self.text_label)
         #self.text_label.setStyleSheet("QLabel { color : blue; font-size: 30px; }")
@@ -107,23 +108,26 @@ class WallframeTooltip(QWidget):
         # XXX
         # ROS Services
 
-        self.update_tooltip = rospy.Service(self.name + '/update_tooltip', wallframe_core.srv.update_tooltip, self.update_tooltip_service)
+        self.update_tooltip_srv = rospy.Service(self.name + '/update_tooltip', wallframe_core.srv.update_tooltip, self.update_tooltip_service)
         rospy.logwarn("WallframeTooltip: Service Ready [" + self.name + "/update_tooltip ]")
         self.hide_tooltip_srv = rospy.Service(self.name + '/hide_tooltip', wallframe_core.srv.hide_tooltip, self.hide_tooltip_service)
         rospy.logwarn("WallframeTooltip: Service Ready [" + self.name + "/hide_tooltip ]")
 
         self.SIGNAL_HIDE.connect(self.hide_tooltip)
-        self.SIGNAL_SHOW.connect(self.show_tooltip)
+        self.SIGNAL_SHOW.connect(self.update_tooltip)
         # Running
         rospy.logwarn("WallframeTooltip: Started")
     def hide_tooltip(self):
         self.hide()
-    def show_tooltip(self, image_path):
+    def update_tooltip(self, image_path):
         pixmap = QPixmap(image_path)
-        self.text_label.setPixmap(pixmap)
+        self.setStyleSheet("border-image: url(" + image_path + ");")
+        #self.text_label.setPixmap(pixmap)
+
         #movie = QMovie(image_path)
         #self.text_label.setMovie(movie)
         #movie.start()
+        self.update()
         self.show()
     def update_tooltip_service(self, request):
         message = "WallframeTooltip: Service Call to update the text ["+request.app_id+"]"

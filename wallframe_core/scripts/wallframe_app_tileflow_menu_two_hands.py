@@ -233,12 +233,12 @@ class AppMenu(WallframeAppWidget):
     self.signal_show_.connect(self.show_menu)
     self.signal_hide_.connect(self.hide_menu)
 
-    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click", "")
 
     #self.hide()
     # Launch the screensaver
     self.load_app(self.default_app_id_)
     self.current_app_id = ""
+    self.update_tooltip("tooltip_menu", "", "menu.png")
 
   def check_ok(self):
     if rospy.is_shutdown():
@@ -385,6 +385,7 @@ class AppMenu(WallframeAppWidget):
             #print "waiting"
             pass
           self.deactivate_menu()
+          self.update_tooltip("tooltip_menu", "", "menu.png")
           self.app_launched = False
 
 
@@ -395,7 +396,8 @@ class AppMenu(WallframeAppWidget):
     self.current_app_id = app_id
 
   def load_app(self, app_id):
-    self.show_tooltip("tooltip_menu", "Loading...", "")
+    if (app_id != self.default_app_id_):
+        self.update_tooltip("tooltip_menu", "", "loading.jpg")
     self.toast_pub_.publish(String('Loading App ' + self.app_ids_[app_id]))
 
     rospy.wait_for_service('wallframe/core/app_manager/load_app')
@@ -405,7 +407,6 @@ class AppMenu(WallframeAppWidget):
       ret_success = self.srv_load_app(app_id)
       #self.current_app_id = app_id
       self.toast_pub_.publish(String(self.app_ids_[app_id] + " running"))
-      self.show_tooltip("tooltip_menu", "Place hands on head to show menu", "")
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
@@ -448,7 +449,7 @@ class AppMenu(WallframeAppWidget):
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
-  def show_tooltip(self, tooltip_name, text, background_path):
+  def update_tooltip(self, tooltip_name, text, background_path):
     rospy.wait_for_service(tooltip_name + '/update_tooltip')
     update_tooltip_cb = rospy.ServiceProxy(tooltip_name + '/update_tooltip', update_tooltip)
     try:
@@ -466,7 +467,7 @@ class AppMenu(WallframeAppWidget):
 
 
   def hide_menu(self):
-    #self.hide_tooltip_from_menu("tooltip_app")
+    self.update_tooltip("tooltip_menu", "", "menu.png")
     self.hide()
     self.update()
     self.is_active = False
@@ -474,7 +475,8 @@ class AppMenu(WallframeAppWidget):
     pass
 
   def show_menu(self):
-    self.show_tooltip("tooltip_menu", "Place left hand on right elbow to click", "")
+
+    self.hide_tooltip_from_menu("tooltip_menu")
     self.show()
     self.update()
     self.is_active = True
