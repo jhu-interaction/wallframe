@@ -397,7 +397,7 @@ class AppMenu(WallframeAppWidget):
 
   def load_app(self, app_id):
     if (app_id != self.default_app_id_):
-        self.update_tooltip("tooltip_menu", "", "loading.jpg")
+        self.update_tooltip("tooltip_menu", "", "loading.gif")
     self.toast_pub_.publish(String('Loading App ' + self.app_ids_[app_id]))
 
     rospy.wait_for_service('wallframe/core/app_manager/load_app')

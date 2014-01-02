@@ -120,13 +120,14 @@ class WallframeTooltip(QWidget):
     def hide_tooltip(self):
         self.hide()
     def update_tooltip(self, image_path):
-        pixmap = QPixmap(image_path)
-        self.setStyleSheet("border-image: url(" + image_path + ");")
+        #pixmap = QPixmap(image_path)
+        #self.setStyleSheet("border-image: url(" + image_path + ");")
         #self.text_label.setPixmap(pixmap)
 
-        #movie = QMovie(image_path)
-        #self.text_label.setMovie(movie)
-        #movie.start()
+        movie = QMovie(image_path)
+        movie.setScaledSize(QtCore.QSize(self.width, self.height))
+        self.text_label.setMovie(movie)
+        movie.start()
         self.update()
         self.show()
     def update_tooltip_service(self, request):
