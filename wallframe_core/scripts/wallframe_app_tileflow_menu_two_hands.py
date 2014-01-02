@@ -64,6 +64,7 @@ from wallframe_extra.msg import WallframeMouseState
 # srv
 import wallframe_core
 from wallframe_core import WallframeAppWidget
+from wallframe_image_widget import WallframeImageWidget
 from wallframe_core.srv import *
 from tileflow import TileflowWidget
 
@@ -98,6 +99,8 @@ class AppMenu(WallframeAppWidget):
     self.is_active = False
     self.app_launched = False
 
+
+    self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
     self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
     # ROS
     rospy.init_node('wallframe_app_tileflow_menu', anonymous=True)
@@ -167,6 +170,12 @@ class AppMenu(WallframeAppWidget):
     else:
       rospy.logerr("WallframeAppMenu: parameter [app_ids] not found on server")
 
+    ### get the assets path
+    if rospy.has_param("/wallframe/core/tooltip/assets"):
+      self.assets_path = rospy.get_param("/wallframe/core/tooltip/assets")
+    else:
+      rospy.logerr("WallframeAppMenu: parameter [assets] not found on server")
+
     ### Default App ###
     if rospy.has_param("/wallframe/core/default_app"):
       self.default_app_id_ = rospy.get_param("/wallframe/core/default_app")
@@ -203,19 +212,18 @@ class AppMenu(WallframeAppWidget):
     #self.app_list_ = self.app_paths_.keys()
     #rospy.logwarn("WallframeMenu: found " + str(len(self.app_list_)) + " applications")
 
-    self.grid_set_up_ = False
-    self.setup_grid()
+
+
     self.setWindowTitle("Wallframe Main Menu")
-    self.box_layout_ = QHBoxLayout()
+    self.layout_ = QVBoxLayout()
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
     self.show()
     self.resize(self.width_, self.height_)
     self.move(self.x_,self.y_)
-    self.setLayout(self.box_layout_)
-
+    self.setLayout(self.layout_)
 
     # Init TileflowWidget
-    self.init_tileflow()
+    self.init_menu_widget()
     # Timers
     self.ok_timer_ = QtCore.QTimer()
     self.connect(self.ok_timer_, QtCore.SIGNAL("timeout()"), self.check_ok)
@@ -240,13 +248,6 @@ class AppMenu(WallframeAppWidget):
       pass
     pass
 
-  def setup_grid(self):
-    self.max_x_ = 4
-    self.max_y_ = 6
-    rospy.logwarn('WallframeMenu:  Grid size is '+str(self.max_x_)+' (w) by , '+str(self.max_y_)+' (h)')
-    self.cur_ind_x_ = 0
-    self.cur_ind_y_ = 0
-    self.grid_set_up_ = True
 
 #TODO this function should be in utilies
   def convert_workspace(self,user_pos):
@@ -276,11 +277,32 @@ class AppMenu(WallframeAppWidget):
     pass
 
 
-  def init_tileflow(self):
+  def init_menu_widget(self):
+    # Initialize the help tool tips
+    self.left_swipe_tool_tip = WallframeImageWidget(1280, 400, self.assets_path + "/left.png")
+    self.right_swipe_tool_tip = WallframeImageWidget(1280, 400, self.assets_path + "/right.png")
+    self.click_tool_tip = WallframeImageWidget(1280, 400, self.assets_path + "/click.png")
+    # add the tooltip widgets
+    self.top_widget = QWidget()
+    self.top_widget_layout = QHBoxLayout(self.top_widget)
+    self.top_widget_layout.addWidget(self.left_swipe_tool_tip)
+    self.top_widget_layout.addWidget(self.click_tool_tip)
+    self.top_widget_layout.addWidget(self.right_swipe_tool_tip)
+    self.top_widget_layout.setSpacing(0)
+    self.top_widget.setFixedHeight(400)
+    #self.top_widget.setStyleSheet("border-width: 0;")
+    self.top_widget.setAutoFillBackground(True)
+    p = self.top_widget.palette()
+    p.setColor(self.top_widget.backgroundRole(), Qt.black)
+    self.top_widget.setPalette(p)
+    self.layout_.addWidget(self.top_widget)
+    self.layout_.setSpacing(0)
     res_list = [item[1] + '/menu_icon.png' for item in self.app_paths_.items()]
     self.tileflow_widget = TileflowWidget(self, res_list)
-    self.box_layout_.addWidget(self.tileflow_widget)
     self.app_menu_items_ = [item[0] for item in self.app_paths_.items()]
+
+    self.layout_.addWidget(self.tileflow_widget)
+
 
   def user_state_cb(self, msg):
     if self.run_:
@@ -444,7 +466,7 @@ class AppMenu(WallframeAppWidget):
 
 
   def hide_menu(self):
-    self.hide_tooltip_from_menu("tooltip_app")
+    #self.hide_tooltip_from_menu("tooltip_app")
     self.hide()
     self.update()
     self.is_active = False

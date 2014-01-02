@@ -11,7 +11,7 @@
   <node pkg="wallframe_core" name="wallframe_infobar" type="wallframe_infobar.py" output="screen"/>
 
   <node pkg="wallframe_core" name="wallframe_menu_tooltip" type="wallframe_tooltip.py" output="screen" args="wallframe_menu_tooltip"/>
-  <node pkg="wallframe_core" name="wallframe_app_tooltip" type="wallframe_tooltip.py" output="screen" args="wallframe_app_tooltip"/>
+  <!-- <node pkg="wallframe_core" name="wallframe_app_tooltip" type="wallframe_tooltip.py" output="screen" args="wallframe_app_tooltip"/> -->
   <param name="/wallframe/menu/params/cursor_path" value="$(find wallframe_core)/assets/cursor_open.png" /> 
   <param name="/wallframe/menu/params/cursor_path_alt" value="$(find wallframe_core)/assets/cursor_closed.png" /> 
   <param name="/wallframe/menu/params/background_path" value="$(find wallframe_core)/assets/background.jpg" /> 
