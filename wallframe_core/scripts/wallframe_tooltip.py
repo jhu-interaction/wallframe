@@ -77,7 +77,7 @@ class WallframeTooltip(QWidget):
         self.height = rospy.get_param("/wallframe/" + self.node_name + "/params/height_percentage", 0.08) * self.wall_height
         self.width = rospy.get_param("/wallframe/" + self.node_name + "/params/width_percentage", 0.2) * self.wall_width
 
-        self.x_position = rospy.get_param("/wallframe/"+ self.node_name + "/params/x_percentage", 0.8) * self.wall_width + self.x
+        self.x_position = rospy.get_param("/wallframe/"+ self.node_name + "/params/x_percentage", 0.4) * self.wall_width + self.x
         self.y_position = rospy.get_param("/wallframe/" + self.node_name + "/params/y_percentage", 0.05) * self.wall_height + self.y
         self.name = rospy.get_param("/wallframe/" + self.node_name + "/params/name")
         self.assets_path = rospy.get_param("/wallframe/core/tooltip/assets")
@@ -89,7 +89,8 @@ class WallframeTooltip(QWidget):
         self.show()
         #self.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.SmoothPixmapTransform)
         self.setAutoFillBackground(True)
-        self.setWindowOpacity(.9)
+        self.setWindowOpacity(.5)
+        #self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.resize(self.width, self.height)
         print "Tool tip height" , self.height , "width " , self.width
         print "xpos " ,  self.x_position , " ypos" , self.y_position
@@ -97,6 +98,7 @@ class WallframeTooltip(QWidget):
 
         self.text_label = QLabel('Welcome')
         self.text_label.setFixedSize(self.width, self.height)
+        #self.text_label.setAttribute(Qt.WA_TranslucentBackground, True)
         layout = QHBoxLayout()
         layout.addWidget(self.text_label)
         #self.text_label.setStyleSheet("QLabel { color : blue; font-size: 30px; }")
@@ -117,8 +119,11 @@ class WallframeTooltip(QWidget):
         self.SIGNAL_SHOW.connect(self.update_tooltip)
         # Running
         rospy.logwarn("WallframeTooltip: Started")
+
     def hide_tooltip(self):
         self.hide()
+
+
     def update_tooltip(self, image_path):
         #pixmap = QPixmap(image_path)
         #self.setStyleSheet("border-image: url(" + image_path + ");")
@@ -130,6 +135,8 @@ class WallframeTooltip(QWidget):
         movie.start()
         self.update()
         self.show()
+
+
     def update_tooltip_service(self, request):
         message = "WallframeTooltip: Service Call to update the text ["+request.app_id+"]"
         print message
