@@ -354,7 +354,6 @@ class AppMenu(WallframeAppWidget):
           self.terminate_app(self.current_app_id)
 
           self.deactivate_menu()
-
           # resume the screen saver
           self.resume_app(self.default_app_id_)
 
@@ -371,22 +370,25 @@ class AppMenu(WallframeAppWidget):
           self.current_app_id = ""
 
           self.activate_menu()
+          self.is_active = True
 
         # if click gesture is detected and the menu is active
         if msg.message == 'left_elbow_click' and self.is_active == True and self.current_app_id == "":
 
           # launch the app
-          rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
-          self.tileflow_widget.click()
+          if self.is_active:
+            rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
+            self.tileflow_widget.click()
 
-          # The menu should not be deactivated until the app is ready
-          self.app_launched = False
-          while not self.app_launched:
-            #print "waiting"
-            pass
-          self.deactivate_menu()
-          self.update_tooltip("tooltip_menu", "", "menu.png")
-          self.app_launched = False
+            # The menu should not be deactivated until the app is ready
+            self.app_launched = False
+            self.is_active = False
+            while not self.app_launched:
+                #print "waiting"
+                pass
+            self.deactivate_menu()
+            self.update_tooltip("tooltip_menu", "", "menu.png")
+            self.app_launched = False
 
 
   def clicked_on(self, ind):
@@ -470,7 +472,6 @@ class AppMenu(WallframeAppWidget):
     self.update_tooltip("tooltip_menu", "", "menu.png")
     self.hide()
     self.update()
-    self.is_active = False
     rospy.logwarn("WallframeMenu: setting to hidden")
     pass
 
@@ -479,7 +480,6 @@ class AppMenu(WallframeAppWidget):
     self.hide_tooltip_from_menu("tooltip_menu")
     self.show()
     self.update()
-    self.is_active = True
     rospy.logwarn("WallframeMenu: setting to visible")
     pass
 
@@ -588,7 +588,7 @@ class AppMenu(WallframeAppWidget):
   def update_tiles(self):
     if self.run_:
 
-      if self.prev_user and self.current_user :
+      if self.prev_user and self.current_user and self.is_active:
         gesture = self.check_for_swipe(self.prev_user,self.current_user)
         if gesture == "LONG_RIGHT_SWIPE":
           self.tileflow_widget.move_right(2)
