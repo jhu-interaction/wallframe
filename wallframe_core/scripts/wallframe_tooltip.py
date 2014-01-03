@@ -103,11 +103,6 @@ class WallframeTooltip(QWidget):
         layout.addWidget(self.text_label)
         #self.text_label.setStyleSheet("QLabel { color : blue; font-size: 30px; }")
         self.setLayout(layout)
-        # XXX
-        #image_path = self.assets_path + "/cursor.jpg"
-        #self.pixmap = QPixmap(image_path)
-        #self.text_label.setPixmap(self.pixmap)
-        # XXX
         # ROS Services
 
         self.update_tooltip_srv = rospy.Service(self.name + '/update_tooltip', wallframe_core.srv.update_tooltip, self.update_tooltip_service)
@@ -142,9 +137,6 @@ class WallframeTooltip(QWidget):
         print message
         self.text_label.setText(request.text)
         image_path = self.assets_path + "/" + request.background_path
-        #self.pixmap = QPixmap(image_path)
-        #self.text_label.setPixmap(self.pixmap)
-        #self.text_label.setStyleSheet("background-image: url(" + self.assets_path + "/" + request.background_path + "); background-attachment: fixed")
         self.SIGNAL_SHOW.emit(image_path)
         return True
 
