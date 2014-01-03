@@ -74,11 +74,11 @@ class WallframeTooltip(QWidget):
         self.x = rospy.get_param("/wallframe/core/params/x", 1680)
         self.y = rospy.get_param("/wallframe/core/params/y", 24)
 
-        self.height = rospy.get_param("/wallframe/" + self.node_name + "/params/height_percentage", 0.08) * self.wall_height
-        self.width = rospy.get_param("/wallframe/" + self.node_name + "/params/width_percentage", 0.2) * self.wall_width
+        self.height = int(rospy.get_param("/wallframe/" + self.node_name + "/params/height_percentage", 0.08) * self.wall_height)
+        self.width = int(rospy.get_param("/wallframe/" + self.node_name + "/params/width_percentage", 0.2) * self.wall_width)
 
-        self.x_position = rospy.get_param("/wallframe/"+ self.node_name + "/params/x_percentage", 0.4) * self.wall_width + self.x
-        self.y_position = rospy.get_param("/wallframe/" + self.node_name + "/params/y_percentage", 0.05) * self.wall_height + self.y
+        self.x_position = int(rospy.get_param("/wallframe/"+ self.node_name + "/params/x_percentage", 0.4) * self.wall_width + self.x)
+        self.y_position = int(rospy.get_param("/wallframe/" + self.node_name + "/params/y_percentage", 0.05) * self.wall_height + self.y)
         self.name = rospy.get_param("/wallframe/" + self.node_name + "/params/name")
         self.assets_path = rospy.get_param("/wallframe/core/tooltip/assets")
         #self.setStyleSheet("background-color:#ffffff;color:#222222")
