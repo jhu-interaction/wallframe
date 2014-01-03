@@ -70,7 +70,7 @@ from tileflow import TileflowWidget
 
 class AppMenu(WallframeAppWidget):
   Y_THRES = 50
-  X_LONG_THRES = 80
+  X_LONG_THRES = 130
   X_MID_THRES = 80
   X_SHORT_THRES = 30
 
@@ -529,7 +529,7 @@ class AppMenu(WallframeAppWidget):
       if self.state == "RIGHT":
         if -dx > self.X_SHORT_THRES:
           self.state = "IDLE"
-      else:
+      elif self.validate_y_for_swipe(self.joint_position(prev_user, 'left_hand').y, self.joint_position(current_user, 'left_hand').y, current_user):
         if dx > self.X_LONG_THRES:
           self.state = "RIGHT"
           return "LONG_RIGHT_SWIPE"
@@ -548,7 +548,7 @@ class AppMenu(WallframeAppWidget):
       if self.state == "LEFT":
         if -dx > self.X_SHORT_THRES:
           self.state = "IDLE"
-      else:
+      elif self.validate_y_for_swipe(self.joint_position(prev_user, 'right_hand').y, self.joint_position(current_user, 'right_hand').y, current_user):
         if dx > self.X_LONG_THRES:
           self.state = "LEFT"
           return "LONG_LEFT_SWIPE"
@@ -567,22 +567,19 @@ class AppMenu(WallframeAppWidget):
       return False
 
   def check_for_swipe(self, prev_user, current_user):
-    current_left_hand = self.joint_position(current_user, 'right_hand')
-    current_right_hand = self.joint_position(current_user, 'left_hand')
-    prev_left_hand = self.joint_position(prev_user, 'right_hand')
-    prev_right_hand = self.joint_position(prev_user, 'left_hand')
+    #current_left_hand = self.joint_position(current_user, 'right_hand')
+    #current_right_hand = self.joint_position(current_user, 'left_hand')
+    #prev_left_hand = self.joint_position(prev_user, 'right_hand')
+    #prev_right_hand = self.joint_position(prev_user, 'left_hand')
     # TODO think about what both the two swipe gestures happen together
-#    print "Difference y ", prev_left_hand.y - current_left_hand.y
-#    print "Difference x ", prev_left_hand.x - current_left_hand.x
-#    print "Absolute val y", prev_left_hand.y
-#    print "Absolute val x", prev_left_hand.x
-
     right_gesture = None
     left_gesture = None
-    if self.validate_y_for_swipe(prev_right_hand.y, current_right_hand.y,current_user):
-      right_gesture = self.check_for_right_swipe(prev_user, current_user)
-    if self.validate_y_for_swipe(prev_left_hand.y, current_left_hand.y,current_user):
-      left_gesture = self.check_for_left_swipe(prev_user, current_user)
+    right_gesture = self.check_for_right_swipe(prev_user, current_user)
+    left_gesture = self.check_for_left_swipe(prev_user, current_user)
+    #if self.validate_y_for_swipe(prev_right_hand.y, current_right_hand.y,current_user):
+      #right_gesture = self.check_for_right_swipe(prev_user, current_user)
+    #if self.validate_y_for_swipe(prev_left_hand.y, current_left_hand.y,current_user):
+      #left_gesture = self.check_for_left_swipe(prev_user, current_user)
     return left_gesture or right_gesture
 
   def update_tiles(self):
