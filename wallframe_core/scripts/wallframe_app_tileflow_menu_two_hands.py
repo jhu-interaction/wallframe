@@ -326,13 +326,10 @@ class AppMenu(WallframeAppWidget):
           self.focused_user_id_ = user.wallframe_id
         self.users_[user.wallframe_id] = user
 
-
       if(not has_focused_user):
         self.focused_user_id_ = -1
       else:
         self.current_user = self.users_[self.focused_user_id_]
-
-
 
   def activate_menu(self):
     # show the menu
@@ -343,8 +340,18 @@ class AppMenu(WallframeAppWidget):
     self.signal_hide_.emit()
 
   def app_event_cb(self,msg):
-    print "App event callback called "
-    self.app_launched = True
+    print "App event callback called " + msg.app_id + " " + msg.status 
+    if msg.status == "ready":
+      self.deactivate_menu()
+      self.update_tooltip("tooltip_menu", "", "menu.png")
+    elif msg.status == "exit":
+      # Go back to menu if screen saver is not running
+      # TODO Refactor the code to more clearly deal current app and screensaver.
+      if self.current_app_id != "":
+        self.toast_pub_.publish(String('App exited ' + self.app_ids_[msg.app_id]))
+        self.is_active = True
+        self.current_app_id = ""
+        self.activate_menu()
 
   def user_event_cb(self,msg):
     if self.run_:
@@ -356,11 +363,9 @@ class AppMenu(WallframeAppWidget):
           self.deactivate_menu()
           # resume the screen saver
           self.resume_app(self.default_app_id_)
-
+          self.is_active = False
           self.current_app_id = ""
-          #return
-
-      if msg.event_id == 'hand_event' and msg.user_id == self.focused_user_id_:
+      elif msg.event_id == 'hand_event' and msg.user_id == self.focused_user_id_:
         if msg.message == 'hands_on_head':
           # terminate the current running app
           self.terminate_app(self.current_app_id)
@@ -373,23 +378,13 @@ class AppMenu(WallframeAppWidget):
           self.is_active = True
 
         # if click gesture is detected and the menu is active
-        if msg.message == 'left_elbow_click' and self.is_active == True and self.current_app_id == "":
+        elif msg.message == 'left_elbow_click' and self.is_active == True and self.current_app_id == "":
 
           # launch the app
           if self.is_active:
-            rospy.logwarn("WallframeMenu: LEFT_ELBOW_CLICK received, let's launch app")
-            self.tileflow_widget.click()
-
             # The menu should not be deactivated until the app is ready
-            self.app_launched = False
             self.is_active = False
-            while not self.app_launched:
-                #print "waiting"
-                pass
-            self.deactivate_menu()
-            self.update_tooltip("tooltip_menu", "", "menu.png")
-            self.app_launched = False
-
+            self.tileflow_widget.click()
 
   def clicked_on(self, ind):
     print "clicked on " + self.app_menu_items_[ind]
@@ -476,7 +471,6 @@ class AppMenu(WallframeAppWidget):
     pass
 
   def show_menu(self):
-
     self.hide_tooltip_from_menu("tooltip_menu")
     self.show()
     self.update()
