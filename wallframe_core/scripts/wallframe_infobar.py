@@ -122,8 +122,6 @@ class UserTag(QWidget):
     return self.parent_.users_[self.uid_].frame_confs[jid]
 
   def update_mini_skel(self, xpos):
-    self.activateWindow()
-
     # TODO: get_joint will often return a KeyError when a user leaves
 
     try:
