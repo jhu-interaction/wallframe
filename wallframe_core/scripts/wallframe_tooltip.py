@@ -92,8 +92,8 @@ class WallframeTooltip(QWidget):
         self.setWindowOpacity(.5)
         #self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.resize(self.width, self.height)
-        print "Tool tip height" , self.height , "width " , self.width
-        print "xpos " ,  self.x_position , " ypos" , self.y_position
+        #print "Tool tip height" , self.height , "width " , self.width
+        #print "xpos " ,  self.x_position , " ypos" , self.y_position
 
 
         self.text_label = QLabel('Welcome')
