@@ -314,12 +314,12 @@ class User():
     else:
       self.current_state_msg.hands_on_head = False
     # Right Elbow Click
-    if self.check_joint_dist(self.hand_limit_,'left_hand','right_elbow'):
+    if self.check_joint_dist(self.hand_limit_,'left_hand','right_elbow') and self.joint_body_pos('right_hand').y > self.joint_body_pos('torso').y:
       self.current_state_msg.right_elbow_click = True
     else:
       self.current_state_msg.right_elbow_click = False
     # Left Elbow Click
-    if self.check_joint_dist(self.hand_limit_,'right_hand','left_elbow'):
+    if self.check_joint_dist(self.hand_limit_,'right_hand','left_elbow') and self.joint_body_pos('left_hand').y > self.joint_body_pos('torso').y:
       self.current_state_msg.left_elbow_click = True
     else:
       self.current_state_msg.left_elbow_click = False
