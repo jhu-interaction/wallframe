@@ -92,16 +92,18 @@ class AppMenu(WallframeAppWidget):
     self.run_ = False
     self.mouse_state = (0, 0)
     self.prev_user = None
-    self.current_app_id = ""
     self.current_user = None
     self.state = "IDLE" #IDLE LEFT RIGHT
-    # flag to check if the menu is active
-    self.is_active = False
-    self.app_launched = False
 
+    # Indicates whether or not menu responds to user
+    self.is_active = False
+
+    # Currently running app or empty for menu
+    self.current_app_id = ""
 
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
     self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+
     # ROS
     rospy.init_node('wallframe_app_tileflow_menu', anonymous=True)
 
@@ -205,14 +207,8 @@ class AppMenu(WallframeAppWidget):
       self.height_perc_ = rospy.get_param("/wallframe/menu/params/height_percentage")
     else:
       rospy.logerr("WallframeAppMenu: parameter [height_percentage] not found on server")
-    rospy.logwarn("WallframeAppMenu: height percentage set to " + str(self.height_perc_))
+    #rospy.logwarn("WallframeAppMenu: height percentage set to " + str(self.height_perc_))
     self.height_ = int(self.height_*self.height_perc_)
-
-    # Get app list
-    #self.app_list_ = self.app_paths_.keys()
-    #rospy.logwarn("WallframeMenu: found " + str(len(self.app_list_)) + " applications")
-
-
 
     self.setWindowTitle("Wallframe Main Menu")
     self.layout_ = QVBoxLayout()
@@ -233,11 +229,8 @@ class AppMenu(WallframeAppWidget):
     self.signal_show_.connect(self.show_menu)
     self.signal_hide_.connect(self.hide_menu)
 
-
-    #self.hide()
     # Launch the screensaver
     self.load_app(self.default_app_id_)
-    self.current_app_id = ""
     self.update_tooltip("tooltip_menu", "", "menu.png")
 
   def check_ok(self):
@@ -339,58 +332,56 @@ class AppMenu(WallframeAppWidget):
     # hide the menu
     self.signal_hide_.emit()
 
-  def app_event_cb(self,msg):
-    print "App event callback called " + msg.app_id + " " + msg.status 
+  def app_event_cb(self, msg):
+    print "APP EVENT " + msg.app_id + " " + msg.status 
+    print "CURRENT APP " + self.current_app_id
+    print "MENU ACTIVE " + str(self.is_active)
+
     if msg.status == "ready":
-      self.deactivate_menu()
-      self.update_tooltip("tooltip_menu", "", "menu.png")
+      if msg.app_id == self.current_app_id:
+        self.deactivate_menu()
+        self.update_tooltip("tooltip_menu", "", "menu.png")
     elif msg.status == "exit":
-      # Go back to menu if screen saver is not running
-      # TODO Refactor the code to more clearly deal current app and screensaver.
-      if self.current_app_id != "":
+      if msg.app_id == self.default_app_id_:
+        pass
+        # TODO: Restart default app? 
+
+      if msg.app_id == self.current_app_id:
         self.toast_pub_.publish(String('App exited ' + self.app_ids_[msg.app_id]))
         self.is_active = True
         self.current_app_id = ""
         self.activate_menu()
 
+  def terminate_current_app(self):
+    if (self.current_app_id != self.default_app_id_ and self.current_app_id):
+      self.toast_pub_.publish(String("Closing " + self.app_ids_[self.current_app_id]))
+      self.terminate_app(self.current_app_id)
+      self.current_app_id = ""
+
   def user_event_cb(self,msg):
     if self.run_:
       if msg.event_id == 'workspace_event':
         if msg.message == "all_users_left":
-          # terminate the current running app
-          self.terminate_app(self.current_app_id)
-
+          # Go to screen saver
+          self.terminate_current_app();
           self.deactivate_menu()
-          # resume the screen saver
           self.resume_app(self.default_app_id_)
           self.is_active = False
-          self.current_app_id = ""
       elif msg.event_id == 'hand_event' and msg.user_id == self.focused_user_id_:
         if msg.message == 'hands_on_head':
-          # terminate the current running app
-          self.terminate_app(self.current_app_id)
-
-          # pause the screen saver
+          # Go to menu
+          self.terminate_current_app()
           self.pause_app(self.default_app_id_);
-          self.current_app_id = ""
-
           self.activate_menu()
           self.is_active = True
-
-        # if click gesture is detected and the menu is active
-        elif msg.message == 'left_elbow_click' and self.is_active == True and self.current_app_id == "":
-
-          # launch the app
-          if self.is_active:
-            # The menu should not be deactivated until the app is ready
-            self.is_active = False
-            self.tileflow_widget.click()
+        elif msg.message == 'left_elbow_click' and self.is_active and not self.current_app_id:
+          # Load the app triggering either a "ready" or "exit" event.
+          self.is_active = False
+          self.tileflow_widget.click()
 
   def clicked_on(self, ind):
-    print "clicked on " + self.app_menu_items_[ind]
     app_id = self.app_menu_items_[ind]
     self.load_app(app_id)
-    self.current_app_id = app_id
 
   def load_app(self, app_id):
     if (app_id != self.default_app_id_):
@@ -398,29 +389,24 @@ class AppMenu(WallframeAppWidget):
     self.toast_pub_.publish(String('Loading App ' + self.app_ids_[app_id]))
 
     rospy.wait_for_service('wallframe/core/app_manager/load_app')
+    self.current_app_id = app_id
+
     try:
       self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
                                              wallframe_core.srv.load_app)
       ret_success = self.srv_load_app(app_id)
-      #self.current_app_id = app_id
+
       self.toast_pub_.publish(String(self.app_ids_[app_id] + " running"))
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
   # TODO refactor to merge terminate / pause / resume services into one
   def terminate_app(self, app_id):
-    if not app_id:
-      print "Terminate App app_id empty"
-      return
-
-    self.toast_pub_.publish(String("Closing " + self.app_ids_[app_id]))
     rospy.wait_for_service("wallframe/core/app_manager/terminate_app")
     try:
       self.srv_terminate_app = rospy.ServiceProxy('wallframe/core/app_manager/terminate_app',
                                               wallframe_core.srv.terminate_app)
       ret_success = self.srv_terminate_app(app_id)
-      self.current_app_id = ""
-      self.toast_pub_.publish(String(self.app_ids_[app_id] + ' Closed'))
     except rospy.ServiceException, e:
       rospy.logerr("Service call failed: %s" % e)
 
