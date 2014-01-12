@@ -60,9 +60,11 @@ from wallframe_core.srv import *
 
 class WallframeAppManager():
   def __init__(self):
-    # Member variables
-    # this hash contains the appname as key and the launch file object as value
+    # app_id -> (config param -> config value) 
     self.apps = {}
+
+    # app_id -> most recently launched process
+    self.procs = {}
 
     # Roslaunch
     self.roslaunch_master_ = ROSLaunch()
@@ -113,6 +115,7 @@ class WallframeAppManager():
 
   def terminate_app_service(self, req):
     rospy.loginfo("WallframeAppManager: Service Call to TERMINATE ["+req.app_id+"]")
+    # TODO Monitor and kill if it takes a long time to quit
     return self.request_app(req.app_id, "terminate")
 
   def pause_app_service(self, req):
@@ -139,17 +142,30 @@ class WallframeAppManager():
   def clean_up(self):
     if rospy.has_param("/wallframe/core/available_apps"):
       rospy.delete_param("/wallframe/core/available_apps")
-      print("Remaining parameters cleaned up")
 
+  # Ensures that only one process with a given app_id is running
   def load_app(self, app_id):
     launch_name = self.apps[app_id]["launch_name"]
     launch_package = self.apps[app_id]["package_name"]
     launch_args = ['roslaunch', launch_package, launch_name]
 
+    # Kill any existing process with same app_id
+    if app_id in self.procs:
+      proc = self.procs[app_id]
+      if proc.poll() is not None: 
+        rospy.logwarn("Killing old " + app_id + " pid " + str(proc.pid))
+        try:
+          proc.kill()
+          proc.wait()
+        except OSError:
+          pass
+
     rospy.logwarn("Launching " + app_id)
 
-    process = subprocess.Popen(launch_args)
-    thread.start_new_thread(self.wait_for_app_exit, (process, app_id))
+    proc = subprocess.Popen(launch_args)
+    self.procs[app_id] = proc
+
+    thread.start_new_thread(self.wait_for_app_exit, (proc, app_id))
     return True
 
   def wait_for_app_exit(self, proc, app_id):
@@ -157,6 +173,8 @@ class WallframeAppManager():
     rospy.logwarn("App exit " + app_id + " code " + str(returncode))
     self.app_event(app_id, "exit")
     
+  # TODO menu.cfg -> app.cfg given how its used
+  # TODO Think about app_id. Could not not simply be the ros node name?
   # find which apps have the menu.cfg file and add the app to the
   # available_apps rosparam
   def load_application_configs(self):
@@ -179,7 +197,7 @@ class WallframeAppManager():
       app_package_name = os.path.basename(app_package_path)
       app_launch_file_name = os.path.basename(app_launch_path)
 
-      # Probably this is not the best way to do this
+      # TODO Probably this is not the best way to do this
       # We do not want to add the screen saver to the available apps for menu
       if app_id != "screensaver":
         available_app_list[app_id] = app_package_path
