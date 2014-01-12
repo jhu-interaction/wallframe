@@ -68,9 +68,10 @@ namespace wallframe{
   }
 
   bool WallframeAppBaseQt::stop(){
+    ros::shutdown();
     qApp->quit();
     wallframe_msgs::WallframeAppEvent app_event_msg;
-    app_event_msg.status = "terminated";
+    app_event_msg.status = "stop";
     app_event_msg.app_id = app_id_;
     app_event_publisher_.publish(app_event_msg);
 
