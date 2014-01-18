@@ -133,16 +133,16 @@ class WallframeTooltip(QWidget):
 
 
     def update_tooltip_service(self, request):
-        message = "WallframeTooltip: Service Call to update the text ["+request.app_id+"]"
-        print message
+        rospy.logdebug("WallframeTooltip: Service Call to update the text ["+request.app_id+"]")
+
         self.text_label.setText(request.text)
         image_path = self.assets_path + "/" + request.background_path
         self.SIGNAL_SHOW.emit(image_path)
         return True
 
     def hide_tooltip_service(self, request):
-        message = "WallframeTooltip: Service Call to hide ["+request.app_id+"]"
-        print message
+        rospy.logdebug("WallframeTooltip: Service Call to hide ["+request.app_id+"]")
+
         self.SIGNAL_HIDE.emit()
         return True
 # MAIN

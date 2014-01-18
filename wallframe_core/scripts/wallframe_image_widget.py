@@ -56,7 +56,7 @@ class WallframeImageWidget(QWidget):
         if width and height:
             self.height = height
             self.width = width
-            print self.width, self.height
+            #print self.width, self.height
             self.setFixedSize(self.width, self.height)
             #self.resize(self.width, self.height)
 
