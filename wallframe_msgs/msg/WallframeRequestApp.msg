@@ -1,5 +1,5 @@
-# WallframeRequestApp : contains the request from the menu to pause / resume / terminate app
+# WallframeRequestApp : Request to app manager or app
 
-# command can take three values "terminate" "pause" "resume" 
+# command can take values "terminate" "pause" "resume", "launch"
 string command
 string app_id

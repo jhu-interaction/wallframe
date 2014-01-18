@@ -39,19 +39,16 @@
 #
 # AppManager
 # 1) Reads the menu.cfg file and sets the ros parameters
-# 2) It provides the load , terminate , pause and resume app services
-# These services are used by the menu
+# 2) Responds to launch app requests.
+# 3) Monitors apps in order to send exit events.
 ###
 
 import roslib; roslib.load_manifest('wallframe_core')
 import rospy, os, sys, glob, fnmatch
 import rosgraph.masterapi
-from ros import roslaunch
-from roslaunch.core import Node
-from roslaunch.scriptapi import ROSLaunch
 import subprocess, thread
 
-from wallframe_msgs.msg import WallframeRequestApp as request_app_msg
+from wallframe_msgs.msg import WallframeRequestApp as app_request_msg
 from wallframe_msgs.msg import WallframeAppEvent as app_event_msg
 
 import wallframe_core
@@ -66,85 +63,44 @@ class WallframeAppManager():
     # app_id -> most recently launched process
     self.procs = {}
 
-    # Roslaunch
-    self.roslaunch_master_ = ROSLaunch()
-    # ROS Init
-    rospy.init_node('wallframe_app_manager', anonymous=True)
-    # ROS Subscribers
-#    self.wallframe_event_sub = rospy.Subscriber("/wallframe/events", String, self.wallframe_event_cb)
+    self.log_prefix = "App Manager: "
 
-    # Config parser
+    rospy.init_node('wallframe_app_manager', anonymous=True)
+
     self.config_parser = ConfigParser.RawConfigParser()
-    # Load Apps
     self.load_application_configs()
 
-    # ROS Services
-
-    # load the applications
-    self.load_app_srv_ = rospy.Service('app_manager/load_app', wallframe_core.srv.load_app, self.load_app_service)
-    rospy.logwarn("WallframeAppManager: Service Ready [ load_app ]")
-
-    # terminate the app
-    self.terminate_app_srv_ = rospy.Service('app_manager/terminate_app', wallframe_core.srv.terminate_app, self.terminate_app_service)
-    rospy.logwarn("WallframeAppManager: Service Ready [ terminate_app ]")
-
-    # pause the app
-    self.pause_app_srv_ = rospy.Service('app_manager/pause_app', wallframe_core.srv.pause_app, self.pause_app_service)
-    rospy.logwarn("WallframeAppManager: Service Ready [ pause_app ]")
-
-    ## resume the app
-    self.resume_app_srv_ = rospy.Service('app_manager/resume_app', wallframe_core.srv.resume_app, self.resume_app_service)
-    rospy.logwarn("WallframeAppManager: Service Ready [ resume_app ]")
-
-    # ROS Publishers
-    self.request_app_pub_ = rospy.Publisher("/app/request",request_app_msg)
-    self.app_event_pub_ = rospy.Publisher("/app/event", app_event_msg)
-
-    # Running
-    rospy.logwarn("WallframeAppManager: Started")
+    self.app_event_pub = rospy.Publisher("/app/event", app_event_msg)
+    self.app_request_pub = rospy.Publisher("/app/request", app_request_msg)
+    self.app_request_sub = rospy.Subscriber("/app/request", app_request_msg, self.app_request_cb)    
+ 
+    rospy.loginfo(self.log_prefix + "Running")
     rospy.spin()
 
-    # Quitting
-    rospy.logwarn("WallframeAppManager: Cleaning up running applications")
+    rospy.loginfo(self.log_prefix + "Closing")
     self.clean_up()
-    rospy.logwarn("WallframeAppManager: Finished")
 
-  def load_app_service(self, req):
-    rospy.loginfo("WallframeAppManager: Service Call to LOAD APP ["+req.app_id+"]")
-    return self.load_app(req.app_id)
+  def app_request_cb(self, msg):
+    rospy.loginfo(self.log_prefix + "Request %s %s", msg.command, msg.app_id)
 
-  def terminate_app_service(self, req):
-    rospy.loginfo("WallframeAppManager: Service Call to TERMINATE ["+req.app_id+"]")
-    # TODO Monitor and kill if it takes a long time to quit
-    return self.request_app(req.app_id, "terminate")
-
-  def pause_app_service(self, req):
-    rospy.loginfo("WallframeAppManager: Service Call to PAUSE ["+req.app_id+"]")
-    return self.request_app(req.app_id, "pause")
-
-  def resume_app_service(self, req):
-    rospy.loginfo("WallframeAppManager: Service Call to RESUME ["+req.app_id+"]")
-    return self.request_app(req.app_id, "resume")
-
-  def request_app(self, app_id, command):
-    app_request = request_app_msg()
-    app_request.command = command
-    app_request.app_id = app_id
-    self.request_app_pub_.publish(app_request)
-    return True
-
-  def app_event(self, app_id, status):
+    if msg.command == "launch":
+      self.launch_app(msg.app_id)
+    elif msg.command == "terminate":
+      self.terminate_app(msg.app_id)
+      
+  def send_app_event(self, app_id, status):
     app_event = app_event_msg()
     app_event.status = status
     app_event.app_id = app_id
-    self.app_event_pub_.publish(app_event)
+    self.app_event_pub.publish(app_event)
 
   def clean_up(self):
     if rospy.has_param("/wallframe/core/available_apps"):
       rospy.delete_param("/wallframe/core/available_apps")
+    # TODO: Send kill to all running apps?
 
-  # Ensures that only one process with a given app_id is running
-  def load_app(self, app_id):
+  # Launch an app ensuring that only one process with a given app_id is running
+  def launch_app(self, app_id):
     launch_name = self.apps[app_id]["launch_name"]
     launch_package = self.apps[app_id]["package_name"]
     launch_args = ['roslaunch', launch_package, launch_name]
@@ -153,28 +109,48 @@ class WallframeAppManager():
     if app_id in self.procs:
       proc = self.procs[app_id]
       if proc.poll() is not None: 
-        rospy.logwarn("Killing old " + app_id + " pid " + str(proc.pid))
+        rospy.logwarn(self.log_prefix + "Killing old %s pid %d", app_id, proc.pid)
+
         try:
           proc.kill()
           proc.wait()
         except OSError:
           pass
 
-    rospy.logwarn("Launching " + app_id)
+    rospy.loginfo(self.log_prefix + "Launching %s", app_id)
 
     proc = subprocess.Popen(launch_args)
     self.procs[app_id] = proc
 
     thread.start_new_thread(self.wait_for_app_exit, (proc, app_id))
-    return True
 
   def wait_for_app_exit(self, proc, app_id):
     returncode = proc.wait()
-    rospy.logwarn("App exit " + app_id + " code " + str(returncode))
-    self.app_event(app_id, "exit")
+    rospy.loginfo(self.log_prefix + "App exit %s code %d", app_id, returncode)
+    self.send_app_event(app_id, "exit")
+
+  # App should terminate itself. Start a thread to kill app if needed.
+  def terminate_app(self, app_id):
+    if app_id in self.procs:
+      proc = self.procs[app_id]
+      if proc.poll() is not None:
+        thread.start_new_thread(self.ensure_app_terminates, (proc, app_id))
+
+  def ensure_app_terminates(self, proc, app_id):
+    time.sleep(30)
+
+    if proc.poll() is not None: 
+      rospy.loginfo(self.log_prefix + "Killing %s pid %d because it has not terminated itself.", app_id, proc.pid)
+
+      try:
+        proc.kill()
+      except OSError:
+        pass
     
   # TODO menu.cfg -> app.cfg given how its used
   # TODO Think about app_id. Could not not simply be the ros node name?
+  # TODO Look at RosPack. Maybe can just use manifest?
+
   # find which apps have the menu.cfg file and add the app to the
   # available_apps rosparam
   def load_application_configs(self):
@@ -182,9 +158,7 @@ class WallframeAppManager():
     if rospy.has_param('/wallframe/core/paths/application_path'):
       self.app_path_ = rospy.get_param('/wallframe/core/paths/application_path')
     else:
-      rospy.logerr("WallframeAppManager: application path not found on parameter server")
-
-    rospy.logwarn("WallframeAppManager: Loading Applications from[" + self.app_path_ + "]")
+      rospy.logerr(self.log_prefix + "Application path not found on parameter server")
 
     available_app_list = {}
     app_ids = {}
@@ -197,6 +171,8 @@ class WallframeAppManager():
       app_package_name = os.path.basename(app_package_path)
       app_launch_file_name = os.path.basename(app_launch_path)
 
+      rospy.logdebug(self.log_prefix + "Package: " + app_package_name + " Launch: " + app_launch_file_name)
+
       # TODO Probably this is not the best way to do this
       # We do not want to add the screen saver to the available apps for menu
       if app_id != "screensaver":
@@ -205,7 +181,7 @@ class WallframeAppManager():
 
       app_ids[app_id] = app_name
       launch_file = {"launch_name": app_launch_file_name, "package_name": app_package_name}
-      rospy.logwarn("Package: " + app_package_name + " Launch: " + app_launch_file_name)
+
       self.apps[app_id] = launch_file
 
     rospy.set_param("/wallframe/core/available_apps", available_app_list)

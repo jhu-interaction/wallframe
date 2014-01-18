@@ -60,6 +60,7 @@ from wallframe_msgs.msg import WallframeUser
 from wallframe_msgs.msg import WallframeUserArray
 from wallframe_msgs.msg import WallframeUserEvent
 from wallframe_msgs.msg import WallframeAppEvent
+from wallframe_msgs.msg import WallframeRequestApp
 from wallframe_extra.msg import WallframeMouseState
 # srv
 import wallframe_core
@@ -102,7 +103,7 @@ class AppMenu(WallframeAppWidget):
     self.current_app_id = ""
 
     self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-    self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+    #self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
 
     # ROS
     rospy.init_node('wallframe_app_tileflow_menu', anonymous=True)
@@ -122,6 +123,9 @@ class AppMenu(WallframeAppWidget):
 
 
     self.toast_pub_ = rospy.Publisher("/wallframe/info/toast", String)
+
+    self.app_request_pub_ = rospy.Publisher("/app/request", WallframeRequestApp)
+
 
     # ---- ROS get params -----
     # height
@@ -296,6 +300,13 @@ class AppMenu(WallframeAppWidget):
 
     self.layout_.addWidget(self.tileflow_widget)
 
+  def send_app_request(self, command, app_id):
+    #rospy.wait_for_service("/app/request")
+
+    app_request = WallframeRequestApp()
+    app_request.command = command
+    app_request.app_id = app_id
+    self.app_request_pub_.publish(app_request)
 
   def user_state_cb(self, msg):
     if self.run_:
@@ -386,51 +397,21 @@ class AppMenu(WallframeAppWidget):
   def load_app(self, app_id):
     if (app_id != self.default_app_id_):
         self.update_tooltip("tooltip_menu", "", "loading.gif")
-    self.toast_pub_.publish(String('Loading App ' + self.app_ids_[app_id]))
 
-    rospy.wait_for_service('wallframe/core/app_manager/load_app')
-    self.current_app_id = app_id
+    self.toast_pub_.publish(String('Launching App ' + self.app_ids_[app_id]))
+    self.current_app_id = app_id;
+    self.send_app_request("launch", app_id)
 
-    try:
-      self.srv_load_app = rospy.ServiceProxy('wallframe/core/app_manager/load_app',
-                                             wallframe_core.srv.load_app)
-      ret_success = self.srv_load_app(app_id)
-
-      self.toast_pub_.publish(String(self.app_ids_[app_id] + " running"))
-    except rospy.ServiceException, e:
-      rospy.logerr("Service call failed: %s" % e)
-
-  # TODO refactor to merge terminate / pause / resume services into one
   def terminate_app(self, app_id):
-    rospy.wait_for_service("wallframe/core/app_manager/terminate_app")
-    try:
-      self.srv_terminate_app = rospy.ServiceProxy('wallframe/core/app_manager/terminate_app',
-                                              wallframe_core.srv.terminate_app)
-      ret_success = self.srv_terminate_app(app_id)
-    except rospy.ServiceException, e:
-      rospy.logerr("Service call failed: %s" % e)
+    self.send_app_request("terminate", app_id)
 
   def pause_app(self, app_id):
-    rospy.wait_for_service("wallframe/core/app_manager/pause_app")
-    try:
-      self.srv_pause_app = rospy.ServiceProxy('wallframe/core/app_manager/pause_app',
-                                              wallframe_core.srv.pause_app)
-      ret_success = self.srv_pause_app(app_id)
-      self.current_app_id = ""
-    except rospy.ServiceException, e:
-      rospy.logerr("Service call failed: %s" % e)
+    self.send_app_request("pause", app_id)
+    self.current_app_id = ""
 
   def resume_app(self, app_id):
-    #self.toast_pub_.publish(String("Resuming " + self.app_ids_[app_id]))
-    rospy.wait_for_service("wallframe/core/app_manager/resume_app")
-    try:
-      self.srv_resume_app = rospy.ServiceProxy('wallframe/core/app_manager/resume_app',
-                                              wallframe_core.srv.resume_app)
-      ret_success = self.srv_resume_app(app_id)
-      self.current_app_id = app_id
-      #self.toast_pub_.publish(String(self.app_ids_[app_id] + ' Resumed'))
-    except rospy.ServiceException, e:
-      rospy.logerr("Service call failed: %s" % e)
+    self.send_app_request("resume", app_id)
+    self.current_app_id = app_id
 
   def update_tooltip(self, tooltip_name, text, background_path):
     rospy.wait_for_service(tooltip_name + '/update_tooltip')
@@ -453,15 +434,11 @@ class AppMenu(WallframeAppWidget):
     self.update_tooltip("tooltip_menu", "", "menu.png")
     self.hide()
     self.update()
-    rospy.logwarn("WallframeMenu: setting to hidden")
-    pass
 
   def show_menu(self):
     self.hide_tooltip_from_menu("tooltip_menu")
     self.show()
     self.update()
-    rospy.logwarn("WallframeMenu: setting to visible")
-    pass
 
   def get_cursor_position_sensor(self):
     pos = self.users_[self.focused_user_id_].translations_mm[8]
