@@ -71,6 +71,7 @@ class UserTag(QWidget):
     self.state_ = 'IDLE'
     self.mode_ = 'MINIMIZED'
     self.parent_ = parent
+    self.focused_user_ = False
 
     self.joints_ = {
     'head' : 0, 'neck' : 1, 'torso' : 2, 'right_shoulder' : 3,
@@ -114,6 +115,15 @@ class UserTag(QWidget):
       self.joint_labels_[name] = joint_label
     pass
 
+  # If focused user status for tag changes, update stylesheet
+  def update_is_focused_user(self, status):
+    if self.focused_user_ != status:
+      self.focused_user_ = status
+      # TODO: Better indicator of focus status
+      if self.focused_user_:
+        self.setStyleSheet("background-color:#ffff99;")
+      else:
+        self.setStyleSheet("background-color:#ffffff;")
 
   def get_joint(self, name):
     return self.parent_.users_[self.uid_].translations_mm[self.joints_[name]]
@@ -157,11 +167,6 @@ class UserTag(QWidget):
     x_anchor = x_cord - x_torso + (self.width_ // 2)
     label.move(x_anchor, y_cord)
     label.show()
-
-    # if jid > self.joints_['head']:
-      # self.user_id_label.move(x_anchor, y_cord)
-      # self.user_id_label.show()
-
     pass
 
 ################################################################################
@@ -297,14 +302,9 @@ class WallframeInfobar(QWidget):
       return
 
     tag = self.user_tags_[uid]
-    # userx = self.users_[user_id].translations_mm[joint_id].x
+    tag.update_is_focused_user(self.users_[uid].focused)
     userx = self.users_[uid].translations_mm[2].x
-    #tag.set_pos(int(self.width_/2.0)+userx*1.5) # todo make rosparam
-    tag.update_mini_skel(int(self.width_/2.0)+userx*1.5)
-
-    # tag.update_user(self.users_[uid])
-
-    # do stuff to tag (set position, update state etc)
+    tag.update_mini_skel(int(self.width_/2.0)+userx*1.5)  
 
   def update_tags(self):
     # Update or create new user tags
