@@ -50,7 +50,7 @@ class WallframeImageWidget(QWidget):
     def __init__(self, width, height, image_path):
         QWidget.__init__(self)
 
-        #self.setWindowFlags(QtCore.Qt.FramelessWindowHint )
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint )
         # the tool tip always stays on top
         #self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
         if width and height:
